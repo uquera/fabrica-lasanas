@@ -162,7 +162,7 @@ export async function confirmarLiquidacion(rut: string, facturaId: string, envia
           totalDespachado,
           totalMerma,
           netoFacturable,
-        })
+        }) as any
       );
 
       const transporter = nodemailer.createTransport({
