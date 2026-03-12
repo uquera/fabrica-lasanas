@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import { updateCliente, deleteCliente } from "@/actions/clientes";
-import { Mail, MapPin, Trash2, Pencil, X, Check, AlertCircle } from "lucide-react";
+import { Mail, MapPin, Trash2, Pencil, X, Check, AlertCircle, Store } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface Cliente {
   id: string;
   rut: string;
   razonSocial: string;
+  sucursal: string | null;
   giro: string;
   direccion: string;
   email: string;
@@ -16,7 +17,7 @@ interface Cliente {
 
 export default function ClienteCard({ cliente }: { cliente: Cliente }) {
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ ...cliente });
+  const [form, setForm] = useState({ ...cliente, sucursal: cliente.sucursal ?? "" });
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
@@ -27,6 +28,7 @@ export default function ClienteCard({ cliente }: { cliente: Cliente }) {
     const res = await updateCliente(cliente.id, {
       rut: form.rut,
       razonSocial: form.razonSocial,
+      sucursal: form.sucursal || null,
       giro: form.giro,
       direccion: form.direccion,
       email: form.email,
@@ -41,7 +43,7 @@ export default function ClienteCard({ cliente }: { cliente: Cliente }) {
   };
 
   const handleDelete = async () => {
-    if (!confirm(`¿Eliminar "${cliente.razonSocial}"?`)) return;
+    if (!confirm(`¿Eliminar "${cliente.razonSocial}${cliente.sucursal ? ` — ${cliente.sucursal}` : ""}"?`)) return;
     await deleteCliente(cliente.id);
     router.refresh();
   };
@@ -51,12 +53,13 @@ export default function ClienteCard({ cliente }: { cliente: Cliente }) {
       <div className="bg-zinc-900/50 border border-orange-500/30 rounded-2xl p-6 space-y-3">
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-bold uppercase tracking-widest text-orange-500">Editando Cliente</p>
-          <button onClick={() => { setEditing(false); setForm({ ...cliente }); }} className="p-1 text-zinc-500 hover:text-white"><X className="w-4 h-4" /></button>
+          <button onClick={() => { setEditing(false); setForm({ ...cliente, sucursal: cliente.sucursal ?? "" }); }} className="p-1 text-zinc-500 hover:text-white"><X className="w-4 h-4" /></button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {[
             { label: "RUT", key: "rut" },
             { label: "Razón Social", key: "razonSocial" },
+            { label: "Sucursal / Tienda (opcional)", key: "sucursal" },
             { label: "Giro", key: "giro" },
             { label: "Dirección", key: "direccion" },
           ].map((f) => (
@@ -100,7 +103,14 @@ export default function ClienteCard({ cliente }: { cliente: Cliente }) {
           {cliente.razonSocial.charAt(0)}
         </div>
         <div className="space-y-1">
-          <h3 className="font-bold text-lg group-hover:text-orange-500 transition-colors">{cliente.razonSocial}</h3>
+          <div>
+            <h3 className="font-bold text-lg group-hover:text-orange-500 transition-colors leading-tight">{cliente.razonSocial}</h3>
+            {cliente.sucursal && (
+              <p className="text-sm text-orange-400/80 flex items-center gap-1 mt-0.5">
+                <Store className="w-3 h-3" /> {cliente.sucursal}
+              </p>
+            )}
+          </div>
           <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-zinc-500">
             <span className="bg-zinc-800 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-zinc-400">{cliente.rut}</span>
             <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {cliente.direccion}</span>
@@ -112,7 +122,7 @@ export default function ClienteCard({ cliente }: { cliente: Cliente }) {
           </div>
         </div>
       </div>
-      
+
       <div className="flex gap-1 shrink-0">
         <button onClick={() => setEditing(true)} className="p-2 text-zinc-700 hover:text-orange-500 hover:bg-orange-500/10 rounded-lg transition-all" title="Editar">
           <Pencil className="w-5 h-5" />

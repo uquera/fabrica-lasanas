@@ -8,8 +8,9 @@ datasource db {
 
 model Cliente {
   id          String   @id @default(cuid())
-  rut         String   @unique
+  rut         String
   razonSocial String
+  sucursal    String?
   direccion   String
   giro        String
   email       String

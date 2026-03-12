@@ -17,23 +17,24 @@ export async function getClientes() {
 export async function createCliente(formData: FormData) {
   const rut = formData.get("rut") as string;
   const razonSocial = formData.get("razonSocial") as string;
+  const sucursal = (formData.get("sucursal") as string) || null;
   const direccion = formData.get("direccion") as string;
   const giro = formData.get("giro") as string;
   const email = formData.get("email") as string;
 
   try {
     await prisma.cliente.create({
-      data: { rut, razonSocial, direccion, giro, email },
+      data: { rut, razonSocial, sucursal, direccion, giro, email },
     });
     revalidatePath("/clientes");
     return { success: true };
   } catch (error) {
     console.error("Error al crear cliente:", error);
-    return { success: false, error: "Error al crear el cliente. Verifica que el RUT no esté duplicado." };
+    return { success: false, error: "Error al crear el cliente." };
   }
 }
 
-export async function updateCliente(id: string, data: { rut?: string; razonSocial?: string; giro?: string; direccion?: string; email?: string }) {
+export async function updateCliente(id: string, data: { rut?: string; razonSocial?: string; sucursal?: string | null; giro?: string; direccion?: string; email?: string }) {
   try {
     await prisma.cliente.update({
       where: { id },

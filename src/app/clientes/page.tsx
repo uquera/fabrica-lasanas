@@ -32,15 +32,18 @@ export default async function ClientesPage() {
               </div>
               <form action={async (formData) => { "use server"; await createCliente(formData); }} className="space-y-4">
                 {[
-                  { name: "rut", label: "RUT Empresa", placeholder: "76.123.456-7" },
-                  { name: "razonSocial", label: "Razón Social", placeholder: "Almacén Don Tito SpA" },
-                  { name: "giro", label: "Giro", placeholder: "Minimarket" },
-                  { name: "direccion", label: "Dirección", placeholder: "Calle Falsa 123, Iquique" },
-                  { name: "email", label: "Email para Guías", placeholder: "contacto@tienda.cl", type: "email" },
+                  { name: "rut", label: "RUT Empresa", placeholder: "76.123.456-7", required: true },
+                  { name: "razonSocial", label: "Razón Social", placeholder: "Almacén Don Tito SpA", required: true },
+                  { name: "sucursal", label: "Sucursal / Tienda", placeholder: "Tienda Centro, Local 3...", required: false },
+                  { name: "giro", label: "Giro", placeholder: "Minimarket", required: true },
+                  { name: "direccion", label: "Dirección", placeholder: "Calle Falsa 123, Iquique", required: true },
+                  { name: "email", label: "Email para Guías", placeholder: "contacto@tienda.cl", type: "email", required: true },
                 ].map((f) => (
                   <div key={f.name} className="space-y-2">
-                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-600 ml-1">{f.label}</label>
-                    <input name={f.name} required type={f.type || "text"} placeholder={f.placeholder}
+                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-600 ml-1">
+                      {f.label} {!f.required && <span className="text-zinc-700 normal-case font-normal">(opcional)</span>}
+                    </label>
+                    <input name={f.name} required={f.required} type={f.type || "text"} placeholder={f.placeholder}
                       className="w-full bg-black border border-zinc-800 rounded-2xl px-4 py-3 focus:outline-none focus:border-orange-500/50 transition-colors text-sm" />
                   </div>
                 ))}
