@@ -61,13 +61,15 @@ interface GuiaProps {
     codigo: string;
     descripcion: string;
     cantidad: number;
-    precioUnitario: number;
+    precioUnitario: number;  // precio neto unitario
+    tasaIva?: number;
   }[];
 }
 
 export const GuiaDespachoPDF = ({ folio, fecha, cliente, items }: GuiaProps) => {
   const montoNeto = items.reduce((acc, it) => acc + it.cantidad * it.precioUnitario, 0);
-  const iva = Math.round(montoNeto * 0.19);
+  const tasaIva = items[0]?.tasaIva ?? 0.19;
+  const iva = Math.round(montoNeto * tasaIva);
   const total = montoNeto + iva;
 
   return (

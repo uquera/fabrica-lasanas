@@ -66,6 +66,14 @@ export default async function Home() {
       accent: "orange",
     },
     {
+      title: "Historial de Guías",
+      desc: "Registro de todas las guías de despacho enviadas",
+      action: "Ver Guías",
+      link: "/guias",
+      icon: "📄",
+      accent: "emerald",
+    },
+    {
       title: "Reporte Ventas",
       desc: "Control mensual de venta efectiva y mermas",
       action: "Ver Reporte",

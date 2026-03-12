@@ -23,7 +23,8 @@ model Producto {
   id         String         @id @default(cuid())
   sku        String         @unique
   nombre     String
-  precioBase Float          @default(6000)
+  precioBase Float          @default(5042)
+  tasaIva    Float          @default(0.19)
   createdAt  DateTime       @default(now())
   updatedAt  DateTime       @updatedAt
   detalles   DetalleEnvio[]
@@ -32,6 +33,7 @@ model Producto {
 
 model Envio {
   id           String         @id @default(cuid())
+  folio        Int?           @unique
   fecha        DateTime       @default(now())
   clienteId    String
   guiaDespacho String?

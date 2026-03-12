@@ -20,7 +20,8 @@ export async function getProductos() {
         data: {
           sku: "LAS-TRAD-IND",
           nombre: "Lasaña individual tradicional",
-          precioBase: 6000,
+          precioBase: 5042,
+          tasaIva: 0.19,
         },
       });
       productos = [baseProduct];
@@ -37,15 +38,31 @@ export async function createProducto(formData: FormData) {
   const nombre = formData.get("nombre") as string;
   const sku = formData.get("sku") as string;
   const precioBase = parseFloat(formData.get("precioBase") as string);
+  const tasaIva = parseFloat(formData.get("tasaIva") as string) / 100;
 
   try {
     await prisma.producto.create({
-      data: { nombre, sku, precioBase },
+      data: { nombre, sku, precioBase, tasaIva },
     });
     revalidatePath("/productos");
     return { success: true };
   } catch (error) {
     console.error("Error al crear producto:", error);
     return { success: false, error: "Error al crear el producto. Verifica que el SKU no esté duplicado." };
+  }
+}
+
+export async function updateProducto(id: string, precioBase: number, tasaIva: number) {
+  try {
+    await prisma.producto.update({
+      where: { id },
+      data: { precioBase, tasaIva },
+    });
+    revalidatePath("/productos");
+    revalidatePath("/envios/nuevo");
+    return { success: true };
+  } catch (error) {
+    console.error("Error al actualizar producto:", error);
+    return { success: false, error: "Error al actualizar el producto." };
   }
 }

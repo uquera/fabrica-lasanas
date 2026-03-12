@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { createEnvio } from "@/actions/envios";
-import { Package, User, Plus, Trash2, Send, ArrowLeft, FileText } from "lucide-react";
+import { Package, User, Plus, Trash2, Send, ArrowLeft, FileText, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 
@@ -36,9 +36,17 @@ export default function NuevoEnvio({ clientes, productos }: { clientes: any[], p
     formData.append("clienteId", selectedCliente);
     
     const result = await createEnvio(formData, items);
-    
+
     if (result.success) {
-      alert("Envío registrado con éxito. Se generará la guía.");
+      if (result.emailStatus === "sent") {
+        alert("✓ Envío registrado y guía enviada por email.");
+      } else if (result.emailStatus === "no_email") {
+        alert("Envío registrado. El cliente no tiene email configurado.");
+      } else if (result.emailStatus === "error") {
+        alert(`Envío registrado, pero hubo un error al enviar el email: ${result.emailError}`);
+      } else {
+        alert("Envío registrado con éxito.");
+      }
       router.push("/");
     } else {
       alert(result.error);
@@ -121,7 +129,7 @@ export default function NuevoEnvio({ clientes, productos }: { clientes: any[], p
                       type="number"
                       min="1"
                       value={item.cantidad}
-                      onChange={(e) => updateItem(index, "cantidad", parseInt(e.target.value))}
+                      onChange={(e) => updateItem(index, "cantidad", parseInt(e.target.value) || 1)}
                       className="w-full bg-black border border-zinc-800 rounded-xl px-4 py-3 focus:outline-none focus:border-orange-500/50 transition-colors text-sm"
                     />
                   </div>
@@ -142,7 +150,9 @@ export default function NuevoEnvio({ clientes, productos }: { clientes: any[], p
             disabled={loading || !selectedCliente || items.length === 0}
             className="w-full bg-orange-500 disabled:opacity-50 disabled:cursor-not-allowed hover:bg-orange-600 text-black font-bold py-6 rounded-3xl transition-all shadow-[0_0_30px_rgba(249,115,22,0.2)] flex items-center justify-center gap-3 text-xl active:scale-[0.98]"
           >
-            {loading ? "Procesando..." : (
+            {loading ? (
+              <><Loader2 className="w-6 h-6 animate-spin" /> Generando PDF y enviando guía...</>
+            ) : (
               <>
                 Confirmar Despacho y Enviar Guía
                 <Send className="w-6 h-6" />

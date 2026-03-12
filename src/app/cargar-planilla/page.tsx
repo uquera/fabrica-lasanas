@@ -90,7 +90,6 @@ export default function CargarPlanillaPage() {
   const handleSubmit = async () => {
     if (!data) return;
     setSubmitting(true);
-    setSendingEmails(true);
     const res = await procesarPlanilla(data, new Date(fecha).toISOString());
     if (res.success) {
       setResult({ enviosCreados: res.enviosCreados!, mermasCreadas: res.mermasCreadas!, envioIds: res.envioIds || [] });
@@ -100,7 +99,6 @@ export default function CargarPlanillaPage() {
     } else {
       alert(res.error);
     }
-    setSendingEmails(false);
     setSubmitting(false);
   };
 
@@ -339,7 +337,7 @@ export default function CargarPlanillaPage() {
                       {(["entregaIndividual", "entregaMini", "devolucionIndividual", "devolucionMini"] as const).map((field) => (
                         <td key={field} className="py-3 px-2 text-center">
                           <input type="number" min="0" value={row[field]}
-                            onChange={(e) => updateCell(i, field, parseInt(e.target.value) || 0)}
+                            onChange={(e) => updateCell(i, field, Math.max(0, parseInt(e.target.value) || 0))}
                             className={`w-16 text-center bg-black border rounded-lg py-2 px-1 focus:outline-none transition-colors font-mono text-lg ${
                               field.startsWith("devolucion") ? "border-red-900/30 focus:border-red-500/50 text-red-400" : "border-zinc-800 focus:border-orange-500/50 text-orange-400"
                             }`} />

@@ -33,12 +33,14 @@ export async function createEnvio(formData: FormData, items: { productoId: strin
     });
 
     // Generate PDF and Send Email
-    await generarYEnviarGuias([envio.id]);
-    
+    const emailResults = await generarYEnviarGuias([envio.id]);
+    const emailResult = emailResults[0];
+
     revalidatePath("/");
     revalidatePath("/envios");
-    
-    return { success: true, envioId: envio.id };
+    revalidatePath("/guias");
+
+    return { success: true, envioId: envio.id, emailStatus: emailResult?.status, emailError: emailResult?.error };
   } catch (error) {
     console.error("Error creating envio:", error);
     return { success: false, error: "Error al registrar el envío." };
