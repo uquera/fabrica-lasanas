@@ -35,5 +35,11 @@ export default async function PortalPage() {
     orderBy: { fecha: "desc" },
   });
 
-  return <PortalView envios={envios as any} razonSocial={razonSocial} />;
+  const serialized = envios.map((e) => ({
+    ...e,
+    fecha: e.fecha.toISOString(),
+    fechaPago: (e as any).fechaPago ? (e as any).fechaPago.toISOString() : null,
+  }));
+
+  return <PortalView envios={serialized as any} razonSocial={razonSocial} />;
 }

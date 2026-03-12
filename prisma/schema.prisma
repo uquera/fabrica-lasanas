@@ -33,18 +33,21 @@ model Producto {
 }
 
 model Envio {
-  id           String         @id @default(cuid())
-  folio        Int?           @unique
-  fecha        DateTime       @default(now())
-  clienteId    String
-  guiaDespacho String?
-  facturado    Boolean        @default(false)
-  facturaId    String?
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  detalles     DetalleEnvio[]
-  cliente      Cliente        @relation(fields: [clienteId], references: [id])
-  mermas       Merma[]
+  id               String         @id @default(cuid())
+  folio            Int?           @unique
+  fecha            DateTime       @default(now())
+  clienteId        String
+  guiaDespacho     String?
+  facturado        Boolean        @default(false)
+  facturaId        String?
+  pagado           Boolean        @default(false)
+  fechaPago        DateTime?
+  comprobantePago  String?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
+  detalles         DetalleEnvio[]
+  cliente          Cliente        @relation(fields: [clienteId], references: [id])
+  mermas           Merma[]
 }
 
 model DetalleEnvio {

@@ -14,7 +14,7 @@ export default auth((req) => {
   const path = req.nextUrl.pathname;
   const isLoginPage = path === "/login";
   const isApiAuth = path.startsWith("/api/auth");
-  const isApiGuia = path.startsWith("/api/guia") || path.startsWith("/api/liquidacion");
+  const isApiGuia = path.startsWith("/api/guia") || path.startsWith("/api/liquidacion") || path.startsWith("/api/comprobante");
   const isPortalPage = path === "/portal";
 
   // Always allow auth and PDF API routes

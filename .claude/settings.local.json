@@ -15,7 +15,14 @@
       "Bash(powershell -Command \"Stop-Process -Id 18228 -Force\")",
       "Bash(powershell -Command \"Remove-Item -Path ''c:\\\\Users\\\\Usuario\\\\Desktop\\\\Proyectos Codigo Antigravity\\\\fabrica-lasanas\\\\.next'' -Recurse -Force -ErrorAction SilentlyContinue; Write-Host ''done''\")",
       "Bash(sshpass -p 'e9wmbW7zTR?gF?B' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 root@31.97.86.247 \"echo ''Connected'' && cat /etc/os-release\")",
-      "Bash(python -c \"import paramiko; print\\(''paramiko ok''\\)\")"
+      "Bash(python -c \"import paramiko; print\\(''paramiko ok''\\)\")",
+      "Bash(python -c \":*)",
+      "Bash(node -e \"const {PrismaClient} = require\\(''''@prisma/client''''\\); console.log\\(Object.keys\\(require\\(''''@prisma/client''''\\)\\)\\)\")",
+      "Bash(node -e \"require\\(''''dotenv/config''''\\); const {PrismaClient} = require\\(''''@prisma/client''''\\); const p = new PrismaClient\\({log:[''''error'''']}\\); console.log\\(''''ok''''\\)\")",
+      "Bash(npm install:*)",
+      "Bash(python3 -c \":*)",
+      "WebSearch",
+      "WebFetch(domain:www.rappi.cl)"
     ]
   }
 }
