@@ -6,6 +6,17 @@ import { GuiaDespachoPDF } from "@/components/PDF/GuiaDespacho";
 import { sendMail } from "@/lib/mail";
 import React from "react";
 import { revalidatePath } from "next/cache";
+import { readFileSync } from "fs";
+import { join } from "path";
+
+function getLogoBase64(): string | undefined {
+  try {
+    const buf = readFileSync(join(process.cwd(), "public", "logo.png"));
+    return `data:image/png;base64,${buf.toString("base64")}`;
+  } catch {
+    return undefined;
+  }
+}
 
 interface EnvioConDetalles {
   id: string;
@@ -40,6 +51,7 @@ async function asignarFolio(envioId: string): Promise<number> {
  */
 export async function generarYEnviarGuias(envioIds: string[]): Promise<EmailResult[]> {
   const results: EmailResult[] = [];
+  const logoSrc = getLogoBase64();
 
   for (const envioId of envioIds) {
     const envio = await (prisma.envio as any).findUnique({
@@ -73,6 +85,7 @@ export async function generarYEnviarGuias(envioIds: string[]): Promise<EmailResu
       const pdfElement = React.createElement(GuiaDespachoPDF, {
         folio,
         fecha: fechaStr,
+        logoSrc,
         cliente: {
           razonSocial: envio.cliente.razonSocial,
           rut: envio.cliente.rut,

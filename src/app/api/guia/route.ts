@@ -3,6 +3,8 @@ import prisma from "@/lib/prisma";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { GuiaDespachoPDF } from "@/components/PDF/GuiaDespacho";
 import React from "react";
+import { readFileSync } from "fs";
+import { join } from "path";
 
 export async function GET(req: NextRequest) {
   const envioId = req.nextUrl.searchParams.get("envioId");
@@ -18,9 +20,16 @@ export async function GET(req: NextRequest) {
   const folio = envio.guiaDespacho?.replace("GDE-", "") ?? envio.folio?.toString() ?? "S/N";
   const fechaStr = new Date(envio.fecha).toLocaleDateString("es-CL", { day: "2-digit", month: "long", year: "numeric" });
 
+  let logoSrc: string | undefined;
+  try {
+    const buf = readFileSync(join(process.cwd(), "public", "logo.png"));
+    logoSrc = `data:image/png;base64,${buf.toString("base64")}`;
+  } catch { logoSrc = undefined; }
+
   const pdfElement = React.createElement(GuiaDespachoPDF, {
     folio,
     fecha: fechaStr,
+    logoSrc,
     cliente: {
       razonSocial: envio.cliente.razonSocial,
       rut: envio.cliente.rut,

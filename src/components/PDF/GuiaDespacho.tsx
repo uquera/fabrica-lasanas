@@ -81,10 +81,13 @@ export const GuiaDespachoPDF = ({ folio, fecha, logoSrc, cliente, items }: GuiaP
         {/* Header */}
         <View style={s.headerRow}>
           <View style={s.companyBlock}>
-            <Text style={s.companyName}>COMERCIALIZADORA DE ALIMENTOS ULISES QUERALES E.I.R.L.</Text>
-            <Text style={s.companyDetail}>Giro: ACTIVIDADES DE RESTAURANTES.</Text>
-            <Text style={s.companyDetail}>AVENIDA PADRE HURTADO 2245 - IQUIQUE</Text>
-            <Text style={s.companyDetail}>eMail: Uquera.uq@gmail.com  Teléfono: 948588365</Text>
+            {logoSrc && <Image src={logoSrc} style={s.logoImg} />}
+            <View style={s.companyText}>
+              <Text style={s.companyName}>COMERCIALIZADORA DE ALIMENTOS ULISES QUERALES E.I.R.L.</Text>
+              <Text style={s.companyDetail}>Giro: ACTIVIDADES DE RESTAURANTES.</Text>
+              <Text style={s.companyDetail}>AVENIDA PADRE HURTADO 2245 - IQUIQUE</Text>
+              <Text style={s.companyDetail}>eMail: Uquera.uq@gmail.com  Teléfono: 948588365</Text>
+            </View>
           </View>
           <View style={s.guiaBox}>
             <Text style={s.guiaRut}>R.U.T.: 77.172.854-5</Text>
