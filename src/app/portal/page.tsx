@@ -10,9 +10,10 @@ export default async function PortalPage() {
   const portalUsername = process.env.APP_USERNAME_3 ?? "timemarket";
   if (session?.user?.name !== portalUsername) redirect("/");
 
-  // Fetch all envios for Time Market clients
+  // Fetch all envios for Time Market clients (filter by RUT)
+  const portalRut = process.env.PORTAL_CLIENT_RUT ?? "76452043-2";
   const clientes = await prisma.cliente.findMany({
-    where: { razonSocial: { contains: "Time" } },
+    where: { rut: portalRut },
   });
 
   const clienteIds = clientes.map((c) => c.id);
