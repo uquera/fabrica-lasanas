@@ -17,6 +17,16 @@ async function getDashboardData(range: string = "month") {
       prevEnd.setMilliseconds(-1);
       label = "hoy";
       break;
+    case "yesterday":
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+      end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      end.setMilliseconds(-1);
+      prevStart = new Date(start);
+      prevStart.setDate(prevStart.getDate() - 1);
+      prevEnd = new Date(start);
+      prevEnd.setMilliseconds(-1);
+      label = "ayer";
+      break;
     case "week":
       start = new Date(now);
       start.setDate(start.getDate() - 7);
@@ -129,6 +139,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
           <div className="flex bg-zinc-900/80 border border-zinc-800 p-1 rounded-xl">
             {[
               { id: "day", label: "Hoy" },
+              { id: "yesterday", label: "Ayer" },
               { id: "week", label: "Semana" },
               { id: "month", label: "Mes" },
               { id: "year", label: "Año" },
