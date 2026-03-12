@@ -1,5 +1,6 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
+import { SignOutButton } from "@/components/SignOutButton";
 
 export default async function Home() {
   let stats = { clientes: 0, productos: 0, envios: 0, mermas: 0 };
@@ -94,10 +95,11 @@ export default async function Home() {
       <main className="relative z-10 max-w-7xl mx-auto px-6 py-12 lg:py-20">
         {/* Header */}
         <header className="mb-16">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="flex items-center justify-between mb-4">
             <span className="px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-500 text-xs font-bold tracking-widest uppercase">
               B2B Manager v0.2
             </span>
+            <SignOutButton />
           </div>
           <h1 className="text-5xl lg:text-7xl font-bold tracking-tight mb-6 bg-gradient-to-r from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent">
             Fábrica de <br />
