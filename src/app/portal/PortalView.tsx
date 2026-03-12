@@ -81,7 +81,7 @@ export default function PortalView({ envios }: { envios: Envio[] }) {
           </div>
         </div>
         <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
+          onClick={async () => { await signOut({ redirect: false }); window.location.href = "/login"; }}
           className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-red-400 transition-colors"
         >
           <LogOut className="w-4 h-4" /> Salir

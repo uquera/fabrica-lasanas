@@ -138,7 +138,7 @@ export function Sidebar() {
         {/* Footer */}
         <div className="shrink-0 border-t border-zinc-800 p-2 space-y-1">
           <button
-            onClick={() => signOut({ callbackUrl: "/login" })}
+            onClick={async () => { await signOut({ redirect: false }); window.location.href = "/login"; }}
             title={collapsed ? "Cerrar sesión" : undefined}
             className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium
               text-zinc-500 hover:text-red-400 hover:bg-red-500/10 transition-all border border-transparent
