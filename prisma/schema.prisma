@@ -1,0 +1,69 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Cliente {
+  id          String   @id @default(cuid())
+  rut         String   @unique
+  razonSocial String
+  direccion   String
+  giro        String
+  email       String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  envios      Envio[]
+  mermas      Merma[]
+}
+
+model Producto {
+  id         String         @id @default(cuid())
+  sku        String         @unique
+  nombre     String
+  precioBase Float          @default(6000)
+  createdAt  DateTime       @default(now())
+  updatedAt  DateTime       @updatedAt
+  detalles   DetalleEnvio[]
+  mermas     Merma[]
+}
+
+model Envio {
+  id           String         @id @default(cuid())
+  fecha        DateTime       @default(now())
+  clienteId    String
+  guiaDespacho String?
+  facturado    Boolean        @default(false)
+  facturaId    String?
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  detalles     DetalleEnvio[]
+  cliente      Cliente        @relation(fields: [clienteId], references: [id])
+  mermas       Merma[]
+}
+
+model DetalleEnvio {
+  id         String   @id @default(cuid())
+  envioId    String
+  productoId String
+  cantidad   Int
+  envio      Envio    @relation(fields: [envioId], references: [id])
+  producto   Producto @relation(fields: [productoId], references: [id])
+}
+
+model Merma {
+  id         String   @id @default(cuid())
+  fecha      DateTime @default(now())
+  clienteId  String
+  productoId String
+  envioId    String?
+  cantidad   Int
+  motivo     String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+  envio      Envio?   @relation(fields: [envioId], references: [id])
+  cliente    Cliente  @relation(fields: [clienteId], references: [id])
+  producto   Producto @relation(fields: [productoId], references: [id])
+}
