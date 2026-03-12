@@ -23,7 +23,7 @@ const MESES = [
   "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre",
 ];
 
-export default function PortalView({ envios }: { envios: Envio[] }) {
+export default function PortalView({ envios, razonSocial }: { envios: Envio[]; razonSocial: string }) {
   const now = new Date();
   const [mes, setMes] = useState(now.getMonth());
   const [año, setAño] = useState(now.getFullYear());
@@ -108,7 +108,7 @@ export default function PortalView({ envios }: { envios: Envio[] }) {
             )}
           </div>
           <div>
-            <p className="font-bold text-sm leading-tight">Portal Time Market</p>
+            <p className="font-bold text-sm leading-tight">{razonSocial}</p>
             <p className="text-zinc-500 text-xs">Doña Any — Resumen de despachos</p>
           </div>
         </div>

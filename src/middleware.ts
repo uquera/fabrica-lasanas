@@ -1,12 +1,15 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
 
-const PORTAL_USERNAME = process.env.APP_USERNAME_3 ?? "timemarket";
+const PORTAL_USERNAMES = [
+  process.env.APP_USERNAME_3 ?? "timemarket",
+  process.env.APP_USERNAME_4 ?? "susana",
+];
 
 export default auth((req) => {
   const isLoggedIn = !!req.auth;
   const username = req.auth?.user?.name;
-  const isPortalUser = username === PORTAL_USERNAME;
+  const isPortalUser = PORTAL_USERNAMES.includes(username ?? "");
 
   const path = req.nextUrl.pathname;
   const isLoginPage = path === "/login";

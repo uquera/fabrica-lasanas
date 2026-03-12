@@ -5,18 +5,24 @@ import PortalView from "./PortalView";
 
 export const dynamic = "force-dynamic";
 
+// Mapa usuario → RUT del cliente
+const PORTAL_RUT_MAP: Record<string, string> = {
+  [process.env.APP_USERNAME_3 ?? "timemarket"]: process.env.PORTAL_CLIENT_RUT ?? "76452043-2",
+  [process.env.APP_USERNAME_4 ?? "susana"]: "76915420-5",
+};
+
 export default async function PortalPage() {
   const session = await auth();
-  const portalUsername = process.env.APP_USERNAME_3 ?? "timemarket";
-  if (session?.user?.name !== portalUsername) redirect("/");
+  const username = session?.user?.name ?? "";
+  const portalRut = PORTAL_RUT_MAP[username];
+  if (!portalRut) redirect("/");
 
-  // Fetch all envios for Time Market clients (filter by RUT)
-  const portalRut = process.env.PORTAL_CLIENT_RUT ?? "76452043-2";
   const clientes = await prisma.cliente.findMany({
     where: { rut: portalRut },
   });
 
   const clienteIds = clientes.map((c) => c.id);
+  const razonSocial = clientes[0]?.razonSocial ?? "Portal";
 
   const envios = await prisma.envio.findMany({
     where: { clienteId: { in: clienteIds } },
@@ -29,5 +35,5 @@ export default async function PortalPage() {
     orderBy: { fecha: "desc" },
   });
 
-  return <PortalView envios={envios as any} />;
+  return <PortalView envios={envios as any} razonSocial={razonSocial} />;
 }
