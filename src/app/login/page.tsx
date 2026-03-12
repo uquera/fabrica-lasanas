@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { Loader2, Lock, User, ChefHat } from "lucide-react";
+import { Loader2, Lock, User } from "lucide-react";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -42,8 +43,14 @@ export default function LoginPage() {
       <div className="w-full max-w-sm relative z-10">
         {/* Logo / Brand */}
         <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-500/10 border border-orange-500/20 rounded-2xl mb-4">
-            <ChefHat className="w-8 h-8 text-orange-500" />
+          <div className="inline-flex items-center justify-center w-24 h-24 bg-orange-500/5 rounded-full mb-4 relative overflow-hidden">
+            <Image 
+              src="/logo.png" 
+              alt="Doña Any" 
+              fill 
+              className="object-contain scale-110" 
+              priority 
+            />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Doña Any</h1>
           <p className="text-zinc-500 text-sm mt-1">Sistema de gestión de despachos</p>

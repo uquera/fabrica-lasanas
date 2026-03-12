@@ -85,7 +85,9 @@ export function Sidebar() {
                 {!logoError ? (
                   <Image src="/logo.png" alt="Doña Any" fill className="object-contain" onError={() => setLogoError(true)} />
                 ) : (
-                  <span className="text-orange-500 font-black text-2xl">D</span>
+                  <div className="w-full h-full bg-orange-500/10 rounded-full flex items-center justify-center border border-orange-500/20">
+                    <span className="text-orange-500 font-black text-xl">A</span>
+                  </div>
                 )}
               </div>
               <div className="min-w-0">
