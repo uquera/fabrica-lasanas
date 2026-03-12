@@ -82,7 +82,7 @@ export default function NuevoEnvio({ clientes, productos }: { clientes: any[], p
             >
               <option value="">Selecciona un cliente...</option>
               {clientes.map(c => (
-                <option key={c.id} value={c.id}>{c.razonSocial} ({c.rut})</option>
+                <option key={c.id} value={c.id}>{c.razonSocial}{c.sucursal ? ` — ${c.sucursal}` : ""} ({c.rut})</option>
               ))}
             </select>
           </div>

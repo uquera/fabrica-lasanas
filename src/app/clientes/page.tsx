@@ -1,4 +1,6 @@
 import { getClientes, createCliente } from "@/actions/clientes";
+
+export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { Building2, ArrowLeft, UserPlus } from "lucide-react";
 import ClienteCard from "./ClienteCard";

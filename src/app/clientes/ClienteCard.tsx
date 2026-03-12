@@ -9,7 +9,7 @@ interface Cliente {
   id: string;
   rut: string;
   razonSocial: string;
-  sucursal: string | null;
+  sucursal?: string | null;
   giro: string;
   direccion: string;
   email: string;
@@ -17,7 +17,7 @@ interface Cliente {
 
 export default function ClienteCard({ cliente }: { cliente: Cliente }) {
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ ...cliente, sucursal: cliente.sucursal ?? "" });
+  const [form, setForm] = useState({ ...cliente, sucursal: cliente.sucursal ?? "" as string });
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
