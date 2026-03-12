@@ -3,6 +3,8 @@ import LiquidacionView from "@/components/Liquidaciones/LiquidacionView";
 import Link from "next/link";
 import { ArrowLeft, Calculator } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+
 export default async function LiquidacionesPage() {
   const pendientes = await getLiquidacionesPendientes();
 
