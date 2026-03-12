@@ -2,11 +2,11 @@
 
 import { useState, useRef } from "react";
 import { type PlanillaData, type PlanillaRow } from "@/actions/ocr-gemini";
-import { procesarPlanilla } from "@/actions/planilla";
-import { generarYEnviarGuias, type EmailResult } from "@/actions/pdf";
+import { procesarPlanilla, type EnvioCreado } from "@/actions/planilla";
+import { enviarGuia } from "@/actions/envios";
 import {
   Upload, Camera, CheckCircle2, Loader2, ArrowLeft, Edit3,
-  FileImage, Send, Mail, AlertCircle, Sparkles
+  FileImage, Send, Mail, Sparkles, FileText, Eye
 } from "lucide-react";
 import Link from "next/link";
 
@@ -18,9 +18,9 @@ export default function CargarPlanillaPage() {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
-  const [result, setResult] = useState<{ enviosCreados: number; mermasCreadas: number; envioIds: string[] } | null>(null);
-  const [sendingEmails, setSendingEmails] = useState(false);
-  const [emailResults, setEmailResults] = useState<EmailResult[] | null>(null);
+  const [result, setResult] = useState<{ enviosCreados: number; mermasCreadas: number; envios: EnvioCreado[] } | null>(null);
+  const [emailStatuses, setEmailStatuses] = useState<Record<string, "idle" | "sending" | "sent" | "no_email" | "error">>({});
+  const [emailErrors, setEmailErrors] = useState<Record<string, string>>({});
   const [ocrStatus, setOcrStatus] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -92,22 +92,23 @@ export default function CargarPlanillaPage() {
     setSubmitting(true);
     const res = await procesarPlanilla(data, new Date(fecha).toISOString());
     if (res.success) {
-      setResult({ enviosCreados: res.enviosCreados!, mermasCreadas: res.mermasCreadas!, envioIds: res.envioIds || [] });
-      if (res.emailResults) {
-        setEmailResults(res.emailResults);
-      }
+      setResult({ enviosCreados: res.enviosCreados!, mermasCreadas: res.mermasCreadas!, envios: res.envios || [] });
     } else {
       alert(res.error);
     }
     setSubmitting(false);
   };
 
-  const handleSendEmails = async () => {
-    if (!result?.envioIds?.length) return;
-    setSendingEmails(true);
-    const results = await generarYEnviarGuias(result.envioIds);
-    setEmailResults(results);
-    setSendingEmails(false);
+  const handleSendOne = async (envioId: string) => {
+    setEmailStatuses((prev) => ({ ...prev, [envioId]: "sending" }));
+    const res = await enviarGuia(envioId) as any;
+    if (res.success) {
+      setEmailStatuses((prev) => ({ ...prev, [envioId]: res.emailStatus ?? "sent" }));
+      if (res.emailError) setEmailErrors((prev) => ({ ...prev, [envioId]: res.emailError }));
+    } else {
+      setEmailStatuses((prev) => ({ ...prev, [envioId]: "error" }));
+      setEmailErrors((prev) => ({ ...prev, [envioId]: res.error ?? "Error desconocido" }));
+    }
   };
 
   const resetAll = () => {
@@ -115,93 +116,114 @@ export default function CargarPlanillaPage() {
     setData(null);
     setImagePreview(null);
     setImageBase64(null);
-    setEmailResults(null);
+    setEmailStatuses({});
+    setEmailErrors({});
     setOcrStatus(null);
   };
 
   // ========== SUCCESS STATE ==========
   if (result) {
     return (
-      <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 font-sans p-6 lg:p-12 selection:bg-orange-500/30">
-        <div className="max-w-3xl mx-auto">
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-8 mb-6">
-            <div className="flex items-center gap-4 mb-6">
-              <div className="w-12 h-12 bg-emerald-500/10 rounded-full flex items-center justify-center">
-                <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold">¡Planilla Procesada!</h2>
-                <p className="text-zinc-500 text-sm">Los datos han sido registrados en la base de datos.</p>
-              </div>
+      <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 font-sans p-6 lg:p-10 pt-16 lg:pt-10">
+        <div className="max-w-5xl mx-auto">
+          {/* Header */}
+          <div className="flex items-center gap-4 mb-6">
+            <div className="w-10 h-10 bg-emerald-500/10 rounded-full flex items-center justify-center shrink-0">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="p-4 bg-black/40 rounded-2xl text-center">
-                <p className="text-3xl font-black text-orange-500">{result.enviosCreados}</p>
-                <p className="text-xs text-zinc-500 mt-1">Envíos creados</p>
-              </div>
-              <div className="p-4 bg-black/40 rounded-2xl text-center">
-                <p className="text-3xl font-black text-red-500">{result.mermasCreadas}</p>
-                <p className="text-xs text-zinc-500 mt-1">Mermas registradas</p>
-              </div>
+            <div>
+              <h2 className="text-2xl font-bold">Planilla Procesada</h2>
+              <p className="text-zinc-500 text-sm">{result.enviosCreados} guías creadas · {result.mermasCreadas} mermas registradas</p>
             </div>
           </div>
 
-          {!emailResults && result.envioIds.length > 0 && (
-            <div className="bg-zinc-900/50 border border-blue-500/20 rounded-3xl p-8 mb-6">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 bg-blue-500/10 rounded-full flex items-center justify-center">
-                  <Mail className="w-6 h-6 text-blue-500" />
-                </div>
-                <div>
-                  <h2 className="text-xl font-bold">Enviar Guías por Email</h2>
-                  <p className="text-zinc-500 text-sm">Genera los PDFs y envíalos a cada tienda con email registrado.</p>
-                </div>
-              </div>
-              <button
-                onClick={handleSendEmails}
-                disabled={sendingEmails}
-                className="w-full bg-blue-600 disabled:opacity-50 hover:bg-blue-700 text-white font-bold py-4 rounded-2xl transition-all flex items-center justify-center gap-3 active:scale-[0.98]"
-              >
-                {sendingEmails ? (
-                  <><Loader2 className="w-5 h-5 animate-spin" /> Generando PDFs y enviando emails...</>
-                ) : (
-                  <><Send className="w-5 h-5" /> Generar PDFs y Enviar por Gmail</>
-                )}
-              </button>
-            </div>
-          )}
-
-          {emailResults && (
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-3xl p-8 mb-6">
-              <h2 className="text-xl font-bold mb-4">Resultado de Envíos</h2>
-              <div className="space-y-2">
-                {emailResults.map((r, i) => (
-                  <div key={i} className={`flex items-center justify-between p-3 rounded-xl ${
-                    r.status === "sent" ? "bg-emerald-500/5 border border-emerald-500/20" :
-                    r.status === "no_email" ? "bg-amber-500/5 border border-amber-500/20" :
-                    "bg-red-500/5 border border-red-500/20"
-                  }`}>
-                    <div className="flex items-center gap-3">
-                      {r.status === "sent" && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
-                      {r.status === "no_email" && <AlertCircle className="w-4 h-4 text-amber-500" />}
-                      {r.status === "error" && <AlertCircle className="w-4 h-4 text-red-500" />}
-                      <span className="font-medium text-sm">{r.tienda}</span>
+          {/* Per-client cards */}
+          {result.envios.length > 0 && (
+            <div className="space-y-5 mb-6">
+              {result.envios.map(({ tienda, envioId }) => {
+                const pdfUrl = `/api/guia?envioId=${envioId}`;
+                const status = emailStatuses[envioId] ?? "idle";
+                return (
+                  <div key={envioId} className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
+                    {/* Card header */}
+                    <div className="flex items-center justify-between px-5 py-3 border-b border-zinc-800">
+                      <span className="font-semibold text-sm">{tienda}</span>
+                      <a
+                        href={pdfUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-1.5 text-xs text-orange-400 hover:text-orange-300 font-medium transition-colors"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Abrir en nueva pestaña
+                      </a>
                     </div>
-                    <div className="text-right">
-                      {r.status === "sent" && <span className="text-xs text-emerald-500">{r.email}</span>}
-                      {r.status === "no_email" && <span className="text-xs text-amber-500">Sin email configurado</span>}
-                      {r.status === "error" && <span className="text-xs text-red-500">{r.error || "Error al enviar"}</span>}
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3">
+                      {/* PDF preview */}
+                      <div className="lg:col-span-2 border-b lg:border-b-0 lg:border-r border-zinc-800">
+                        <iframe
+                          src={pdfUrl}
+                          className="w-full h-[400px] bg-white"
+                          title={`Guía de despacho — ${tienda}`}
+                        />
+                      </div>
+
+                      {/* Send actions */}
+                      <div className="p-5 flex flex-col justify-between gap-4">
+                        <div>
+                          <h3 className="font-semibold text-sm mb-1 flex items-center gap-2">
+                            <Mail className="w-4 h-4 text-orange-500" /> Enviar al cliente
+                          </h3>
+
+                          {status === "idle" && (
+                            <button
+                              onClick={() => handleSendOne(envioId)}
+                              className="mt-3 w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-600 text-black font-bold py-3 rounded-xl transition-all active:scale-[0.98] text-sm"
+                            >
+                              <Send className="w-4 h-4" /> Enviar por email
+                            </button>
+                          )}
+
+                          {status === "sending" && (
+                            <div className="mt-3 flex items-center justify-center gap-2 bg-zinc-800 py-3 rounded-xl text-sm text-zinc-400">
+                              <Loader2 className="w-4 h-4 animate-spin" /> Enviando...
+                            </div>
+                          )}
+
+                          {status === "sent" && (
+                            <div className="mt-3 flex items-center gap-2 text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-4 py-3 text-sm font-medium">
+                              <CheckCircle2 className="w-4 h-4" /> Enviada correctamente
+                            </div>
+                          )}
+
+                          {status === "no_email" && (
+                            <div className="mt-3 text-amber-400 bg-amber-500/10 border border-amber-500/20 rounded-xl px-4 py-3 text-sm">
+                              Sin email configurado.
+                            </div>
+                          )}
+
+                          {status === "error" && (
+                            <div className="mt-3 text-red-400 bg-red-500/10 border border-red-500/20 rounded-xl px-4 py-3 text-sm">
+                              Error: {emailErrors[envioId]}
+                              <button onClick={() => handleSendOne(envioId)} className="block mt-2 text-xs underline hover:text-red-300">
+                                Reintentar
+                              </button>
+                            </div>
+                          )}
+                        </div>
+
+                        <a
+                          href={pdfUrl}
+                          download
+                          className="flex items-center justify-center gap-2 w-full bg-zinc-800 hover:bg-zinc-700 text-white font-medium py-3 rounded-xl transition-all text-sm"
+                        >
+                          <FileText className="w-4 h-4" /> Descargar PDF
+                        </a>
+                      </div>
                     </div>
                   </div>
-                ))}
-              </div>
-              <div className="mt-4 p-3 rounded-xl bg-zinc-800/30 text-center">
-                <p className="text-sm text-zinc-500">
-                  ✅ {emailResults.filter(r => r.status === "sent").length} enviados ·{" "}
-                  ⚠️ {emailResults.filter(r => r.status === "no_email").length} sin email ·{" "}
-                  ❌ {emailResults.filter(r => r.status === "error").length} errores
-                </p>
-              </div>
+                );
+              })}
             </div>
           )}
 

@@ -74,7 +74,7 @@ export function Sidebar() {
           {collapsed ? (
             <div className="w-9 h-9 relative flex items-center justify-center">
               {!logoError ? (
-                <Image src="/logo.png" alt="Doña Any" fill className="object-contain" onError={() => setLogoError(true)} />
+                <Image src="/logo.png" alt="Doña Any" fill className="object-contain" unoptimized onError={() => setLogoError(true)} />
               ) : (
                 <span className="text-orange-500 font-black text-lg">D</span>
               )}
@@ -83,7 +83,7 @@ export function Sidebar() {
             <div className="flex items-center gap-3 min-w-0">
               <div className="w-10 h-10 relative shrink-0 flex items-center justify-center">
                 {!logoError ? (
-                  <Image src="/logo.png" alt="Doña Any" fill className="object-contain" onError={() => setLogoError(true)} />
+                  <Image src="/logo.png" alt="Doña Any" fill className="object-contain" unoptimized onError={() => setLogoError(true)} />
                 ) : (
                   <div className="w-full h-full bg-orange-500/10 rounded-full flex items-center justify-center border border-orange-500/20">
                     <span className="text-orange-500 font-black text-xl">A</span>

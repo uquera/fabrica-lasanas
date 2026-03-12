@@ -45,11 +45,12 @@ export default function LoginPage() {
         <div className="text-center mb-10">
           <div className="inline-flex items-center justify-center w-24 h-24 bg-orange-500/5 rounded-full mb-4 relative overflow-hidden">
             <Image 
-              src="/logo.png" 
-              alt="Doña Any" 
-              fill 
-              className="object-contain scale-110" 
-              priority 
+              src="/logo.png"
+              alt="Doña Any"
+              fill
+              className="object-contain scale-110"
+              priority
+              unoptimized
             />
           </div>
           <h1 className="text-2xl font-bold tracking-tight">Doña Any</h1>

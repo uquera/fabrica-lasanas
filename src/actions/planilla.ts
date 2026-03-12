@@ -41,12 +41,15 @@ interface PlanillaRowInput {
   devolucionMini: number;
 }
 
-import { generarYEnviarGuias, type EmailResult } from "@/actions/pdf";
+export interface EnvioCreado {
+  tienda: string;
+  envioId: string;
+}
 
 /**
  * Receives the confirmed planilla data and creates Envios + Mermas in batch.
  */
-export async function procesarPlanilla(rows: PlanillaRowInput[], fechaISO: string): Promise<{ success: boolean; enviosCreados?: number; mermasCreadas?: number; envioIds?: string[]; emailResults?: EmailResult[]; error?: string }> {
+export async function procesarPlanilla(rows: PlanillaRowInput[], fechaISO: string): Promise<{ success: boolean; enviosCreados?: number; mermasCreadas?: number; envios?: EnvioCreado[]; error?: string }> {
   try {
     const tiendaMap = await ensureTiendas(rows.map((r) => r.tienda));
     const fecha = new Date(fechaISO);
@@ -55,13 +58,13 @@ export async function procesarPlanilla(rows: PlanillaRowInput[], fechaISO: strin
     let productoIndividual = await prisma.producto.findFirst({ where: { sku: "LAS-TRAD-IND" } });
     if (!productoIndividual) {
       productoIndividual = await prisma.producto.create({
-        data: { sku: "LAS-TRAD-IND", nombre: "Lasaña individual tradicional", precioBase: 6000 },
+        data: { sku: "LAS-TRAD-IND", nombre: "Lasaña individual tradicional", precioBase: 5042 },
       });
     }
 
     let enviosCreados = 0;
     let mermasCreadas = 0;
-    const envioIds: string[] = [];
+    const envios: EnvioCreado[] = [];
 
     for (const row of rows) {
       const clienteId = tiendaMap[row.tienda];
@@ -81,7 +84,7 @@ export async function procesarPlanilla(rows: PlanillaRowInput[], fechaISO: strin
             },
           },
         });
-        envioIds.push(envio.id);
+        envios.push({ tienda: row.tienda, envioId: envio.id });
         enviosCreados++;
       }
 
@@ -100,17 +103,11 @@ export async function procesarPlanilla(rows: PlanillaRowInput[], fechaISO: strin
       }
     }
 
-    // Trigger automatic email dispatch
-    let emailResults: EmailResult[] = [];
-    if (envioIds.length > 0) {
-      emailResults = await generarYEnviarGuias(envioIds);
-    }
-
     revalidatePath("/");
     revalidatePath("/reportes");
     revalidatePath("/mermas");
 
-    return { success: true, enviosCreados, mermasCreadas, envioIds, emailResults };
+    return { success: true, enviosCreados, mermasCreadas, envios };
   } catch (error) {
     console.error("Error al procesar planilla:", error);
     return { success: false, error: "Error al procesar la planilla." };

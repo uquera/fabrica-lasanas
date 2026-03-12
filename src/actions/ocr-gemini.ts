@@ -1,5 +1,4 @@
 
-
 import { GoogleGenerativeAI } from "@google/generative-ai";
 
 export interface PlanillaRow {
@@ -22,9 +21,50 @@ export function makeEmptyRows(tiendas: string[]): PlanillaData {
   }));
 }
 
+/** Normalizes a string for fuzzy comparison: lowercase, no accents, no extra spaces */
+function normalize(s: string): string {
+  return s
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s]/g, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+/**
+ * Tries to match a tienda name from the image to a known client name.
+ * Returns the known client name if found, otherwise returns the original.
+ */
+function matchTienda(imageName: string, knownTiendas: string[]): string {
+  const normImage = normalize(imageName);
+
+  // 1. Exact match (case-insensitive, accent-insensitive)
+  for (const t of knownTiendas) {
+    if (normalize(t) === normImage) return t;
+  }
+
+  // 2. One contains the other
+  for (const t of knownTiendas) {
+    const normT = normalize(t);
+    if (normT.includes(normImage) || normImage.includes(normT)) return t;
+  }
+
+  // 3. First word match (e.g., "Unimarc" matches "Unimarc Las Condes")
+  const firstWordImage = normImage.split(" ")[0];
+  if (firstWordImage.length >= 4) {
+    for (const t of knownTiendas) {
+      if (normalize(t).startsWith(firstWordImage)) return t;
+    }
+  }
+
+  // No match — return as-is (will create a new client)
+  return imageName;
+}
+
 /**
  * Uses Google Gemini Vision to parse a delivery sheet image.
- * Receives the list of known stores dynamically from the DB.
+ * Receives the list of known stores for fuzzy-matching after OCR.
  */
 export async function processImageWithGemini(
   base64Image: string,
@@ -38,39 +78,27 @@ export async function processImageWithGemini(
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
 
-  const tiendasList = tiendas.map((t) => `- ${t}`).join("\n");
+  const prompt = `Eres un asistente de extracción de datos para una fábrica de lasañas.
+Analiza la imagen y extrae la tabla de despacho/planilla.
 
-  const prompt = `
-Eres un asistente de extracción de datos para una fábrica de lasañas.
-Analiza la imagen de la planilla/guía de despacho y extrae los datos de entregas y devoluciones por tienda.
+La tabla tiene filas por tienda/local y columnas de entrega y devolución:
+- Entrega individual (lasaña individual 550g) — puede llamarse "Ind", "Individual", "550g", "I"
+- Entrega mini (lasaña mini 200g) — puede llamarse "Mini", "200g", "M", "Ch"
+- Devolución individual — puede llamarse "Dev Ind", "Ret Ind", "Dev I", "Merma Ind"
+- Devolución mini — puede llamarse "Dev Mini", "Ret Mini", "Dev M", "Merma Mini"
 
-Las tiendas conocidas son exactamente estas (usa estos nombres exactos):
-${tiendasList}
+REGLAS IMPORTANTES:
+- Copia los nombres de tiendas EXACTAMENTE como aparecen en la imagen (no los cambies ni corrijas)
+- Si una columna no existe en la imagen, deja el valor en 0
+- Si solo hay una columna de "Entrega" sin separar por tipo, ponla toda en entregaIndividual
+- Ignora filas de TOTAL, SUBTOTAL o encabezados
+- Los valores son cantidades de unidades (números enteros)
+- No inventes datos: si no puedes leer un número claramente, usa 0
 
-Para cada tienda, busca:
-- Entrega Individual (Lasaña Individual 550g) - columna de entrega
-- Entrega Mini (Lasaña Mini 200g) - columna de entrega
-- Devolución Individual - columna de devolución/retiro/merma
-- Devolución Mini - columna de devolución/retiro/merma
-
-Responde ÚNICAMENTE con JSON válido en este formato exacto (sin texto adicional, sin markdown):
-{
-  "rows": [
-    {
-      "tienda": "nombre exacto de la tienda",
-      "entregaIndividual": 0,
-      "entregaMini": 0,
-      "devolucionIndividual": 0,
-      "devolucionMini": 0
-    }
-  ]
-}
-
-Si una tienda no aparece en la imagen o no tiene datos, ponla con valores 0.
-Devuelve SIEMPRE todas las tiendas en el orden listado arriba.
-`;
+Responde ÚNICAMENTE con JSON válido (sin bloques de código, sin texto adicional):
+{"rows":[{"tienda":"nombre exacto","entregaIndividual":0,"entregaMini":0,"devolucionIndividual":0,"devolucionMini":0}]}`;
 
   try {
     const result = await model.generateContent([
@@ -84,7 +112,7 @@ Devuelve SIEMPRE todas las tiendas en el orden listado arriba.
     ]);
 
     const text = result.response.text().trim();
-    console.log("[OCR Gemini] Raw response:", text.slice(0, 200));
+    console.log("[OCR Gemini] Raw response:", text.slice(0, 500));
 
     const jsonStr = text
       .replace(/```json\n?/gi, "")
@@ -96,33 +124,32 @@ Devuelve SIEMPRE todas las tiendas en el orden listado arriba.
       throw new Error("Invalid JSON structure from Gemini");
     }
 
-    // Merge into known tiendas to guarantee all are present
-    const resultMap = new Map<string, PlanillaRow>();
-    for (const t of tiendas) {
-      resultMap.set(t.toLowerCase(), {
-        tienda: t,
-        entregaIndividual: 0,
-        entregaMini: 0,
-        devolucionIndividual: 0,
-        devolucionMini: 0,
-      });
-    }
+    // Build result: for each row Gemini found, fuzzy-match the tienda name
+    const resultRows: PlanillaData = parsed.rows
+      .filter((row: any) => row.tienda && typeof row.tienda === "string")
+      .map((row: any) => ({
+        tienda: matchTienda(row.tienda, tiendas),
+        entregaIndividual: Math.max(0, Math.round(Number(row.entregaIndividual) || 0)),
+        entregaMini: Math.max(0, Math.round(Number(row.entregaMini) || 0)),
+        devolucionIndividual: Math.max(0, Math.round(Number(row.devolucionIndividual) || 0)),
+        devolucionMini: Math.max(0, Math.round(Number(row.devolucionMini) || 0)),
+      }));
 
-    for (const row of parsed.rows) {
-      const key = (row.tienda || "").toLowerCase();
-      if (resultMap.has(key)) {
-        const original = resultMap.get(key)!;
-        resultMap.set(key, {
-          tienda: original.tienda,
-          entregaIndividual: Number(row.entregaIndividual) || 0,
-          entregaMini: Number(row.entregaMini) || 0,
-          devolucionIndividual: Number(row.devolucionIndividual) || 0,
-          devolucionMini: Number(row.devolucionMini) || 0,
+    // Add known tiendas that Gemini didn't find (with zeros)
+    const foundNames = new Set(resultRows.map((r) => normalize(r.tienda)));
+    for (const t of tiendas) {
+      if (!foundNames.has(normalize(t))) {
+        resultRows.push({
+          tienda: t,
+          entregaIndividual: 0,
+          entregaMini: 0,
+          devolucionIndividual: 0,
+          devolucionMini: 0,
         });
       }
     }
 
-    return Array.from(resultMap.values());
+    return resultRows;
   } catch (err) {
     console.error("[OCR Gemini] Error parsing image:", err);
     return makeEmptyRows(tiendas);

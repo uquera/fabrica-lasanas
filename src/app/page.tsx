@@ -2,30 +2,66 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { TrendingUp, Users, Truck, AlertTriangle, FileText, ArrowRight, Clock } from "lucide-react";
 
-async function getDashboardData() {
+async function getDashboardData(range: string = "month") {
   const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-  const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+  let start: Date, end: Date, prevStart: Date, prevEnd: Date;
+  let label = "";
+
+  switch (range) {
+    case "day":
+      start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      end = now;
+      prevStart = new Date(start);
+      prevStart.setDate(prevStart.getDate() - 1);
+      prevEnd = new Date(start);
+      prevEnd.setMilliseconds(-1);
+      label = "hoy";
+      break;
+    case "week":
+      start = new Date(now);
+      start.setDate(start.getDate() - 7);
+      end = now;
+      prevStart = new Date(start);
+      prevStart.setDate(prevStart.getDate() - 7);
+      prevEnd = new Date(start);
+      prevEnd.setMilliseconds(-1);
+      label = "esta semana";
+      break;
+    case "year":
+      start = new Date(now.getFullYear(), 0, 1);
+      end = now;
+      prevStart = new Date(now.getFullYear() - 1, 0, 1);
+      prevEnd = new Date(now.getFullYear(), 0, 0, 23, 59, 59);
+      label = "este año";
+      break;
+    case "month":
+    default:
+      start = new Date(now.getFullYear(), now.getMonth(), 1);
+      end = now;
+      prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      prevEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+      label = "este mes";
+      break;
+  }
 
   try {
     const [
-      enviosMes,
-      enviosMesAnterior,
-      mermasMes,
+      enviosActual,
+      enviosAnterior,
+      mermasActual,
       clientesTotal,
       recentEnvios,
       guiasPendientes,
     ] = await Promise.all([
       (prisma.envio as any).findMany({
-        where: { fecha: { gte: startOfMonth } },
+        where: { fecha: { gte: start, lte: end } },
         include: { detalles: { include: { producto: true } }, cliente: { select: { razonSocial: true } } },
       }),
       (prisma.envio as any).findMany({
-        where: { fecha: { gte: startOfLastMonth, lte: endOfLastMonth } },
+        where: { fecha: { gte: prevStart, lte: prevEnd } },
         include: { detalles: { include: { producto: true } } },
       }),
-      prisma.merma.count({ where: { fecha: { gte: startOfMonth } } }),
+      prisma.merma.count({ where: { fecha: { gte: start, lte: end } } }),
       prisma.cliente.count(),
       (prisma.envio as any).findMany({
         orderBy: { fecha: "desc" },
@@ -40,24 +76,24 @@ async function getDashboardData() {
         total + envio.detalles.reduce((s: number, d: any) =>
           s + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0), 0);
 
-    const revenueMes = calcRevenue(enviosMes);
-    const revenueMesAnterior = calcRevenue(enviosMesAnterior);
-    const revenueChange = revenueMesAnterior > 0
-      ? ((revenueMes - revenueMesAnterior) / revenueMesAnterior) * 100
+    const revenueActual = calcRevenue(enviosActual);
+    const revenueAnterior = calcRevenue(enviosAnterior);
+    const revenueChange = revenueAnterior > 0
+      ? ((revenueActual - revenueAnterior) / revenueAnterior) * 100
       : null;
 
-    const clientesActivosMes = new Set(enviosMes.map((e: any) => e.clienteId)).size;
+    const clientesActivos = new Set(enviosActual.map((e: any) => e.clienteId)).size;
 
     return {
-      revenueMes: Math.round(revenueMes),
+      revenue: Math.round(revenueActual),
       revenueChange,
-      despachosMes: enviosMes.length,
-      clientesActivosMes,
+      despachos: enviosActual.length,
+      clientesActivos,
       clientesTotal,
-      mermasMes,
+      mermas: mermasActual,
       recentEnvios,
       guiasPendientes,
-      mesNombre: now.toLocaleDateString("es-CL", { month: "long" }),
+      label,
     };
   } catch (e) {
     console.error("Dashboard data error:", e);
@@ -67,8 +103,10 @@ async function getDashboardData() {
 
 const fmt = (n: number) => "$" + Math.round(n).toLocaleString("es-CL");
 
-export default async function DashboardPage() {
-  const data = await getDashboardData();
+export default async function DashboardPage(props: { searchParams: Promise<{ range?: string }> }) {
+  const searchParams = await props.searchParams;
+  const range = searchParams.range || "month";
+  const data = await getDashboardData(range);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 p-6 lg:p-8 pt-16 lg:pt-8">
@@ -79,11 +117,35 @@ export default async function DashboardPage() {
 
       <div className="max-w-6xl mx-auto relative z-10">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-          <p className="text-zinc-500 text-sm mt-1 capitalize">
-            Resumen de {data?.mesNombre ?? "este mes"}
-          </p>
+        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+          <div>
+            <h1 className="text-2xl font-bold text-white">Dashboard</h1>
+            <p className="text-zinc-500 text-sm mt-1 capitalize">
+              Resumen de {data?.label ?? "este mes"}
+            </p>
+          </div>
+
+          {/* Date Filter */}
+          <div className="flex bg-zinc-900/80 border border-zinc-800 p-1 rounded-xl">
+            {[
+              { id: "day", label: "Hoy" },
+              { id: "week", label: "Semana" },
+              { id: "month", label: "Mes" },
+              { id: "year", label: "Año" },
+            ].map((r) => (
+              <Link
+                key={r.id}
+                href={`/?range=${r.id}`}
+                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
+                  range === r.id
+                    ? "bg-orange-500 text-black shadow-lg shadow-orange-500/20"
+                    : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
+                }`}
+              >
+                {r.label}
+              </Link>
+            ))}
+          </div>
         </div>
 
         {/* KPI Cards */}
@@ -92,7 +154,7 @@ export default async function DashboardPage() {
           <div className="col-span-2 lg:col-span-1 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-5 hover:border-orange-500/30 transition-all">
             <div className="flex items-center justify-between mb-3">
               <div className="p-2 bg-orange-500/10 rounded-xl">
-                <TrendingUp className="w-4 h-4 text-orange-500" />
+                <div className="w-4 h-4 text-orange-500"><TrendingUp size={16} /></div>
               </div>
               {data?.revenueChange !== null && data?.revenueChange !== undefined && (
                 <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
@@ -104,11 +166,11 @@ export default async function DashboardPage() {
                 </span>
               )}
             </div>
-            <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Ingresos del mes</p>
+            <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Ingresos</p>
             <p className="text-2xl font-black text-orange-500">
-              {data ? fmt(data.revenueMes) : "—"}
+              {data ? fmt(data.revenue) : "—"}
             </p>
-            <p className="text-[10px] text-zinc-600 mt-1">CLP con IVA</p>
+            <p className="text-[10px] text-zinc-600 mt-1">CLP con IVA / {data?.label}</p>
           </div>
 
           {/* Despachos */}
@@ -117,8 +179,8 @@ export default async function DashboardPage() {
               <Truck className="w-4 h-4 text-blue-400" />
             </div>
             <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Despachos</p>
-            <p className="text-2xl font-black text-white">{data?.despachosMes ?? "—"}</p>
-            <p className="text-[10px] text-zinc-600 mt-1">este mes</p>
+            <p className="text-2xl font-black text-white">{data?.despachos ?? "—"}</p>
+            <p className="text-[10px] text-zinc-600 mt-1">{data?.label}</p>
           </div>
 
           {/* Clientes activos */}
@@ -127,7 +189,7 @@ export default async function DashboardPage() {
               <Users className="w-4 h-4 text-emerald-400" />
             </div>
             <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Clientes activos</p>
-            <p className="text-2xl font-black text-white">{data?.clientesActivosMes ?? "—"}</p>
+            <p className="text-2xl font-black text-white">{data?.clientesActivos ?? "—"}</p>
             <p className="text-[10px] text-zinc-600 mt-1">de {data?.clientesTotal ?? "—"} totales</p>
           </div>
 
@@ -137,8 +199,8 @@ export default async function DashboardPage() {
               <AlertTriangle className="w-4 h-4 text-red-400" />
             </div>
             <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Mermas</p>
-            <p className="text-2xl font-black text-white">{data?.mermasMes ?? "—"}</p>
-            <p className="text-[10px] text-zinc-600 mt-1">registradas este mes</p>
+            <p className="text-2xl font-black text-white">{data?.mermas ?? "—"}</p>
+            <p className="text-[10px] text-zinc-600 mt-1">{data?.label}</p>
           </div>
         </div>
 
@@ -156,7 +218,7 @@ export default async function DashboardPage() {
               </Link>
             </div>
             <div className="divide-y divide-zinc-800/50">
-              {data?.recentEnvios.length === 0 && (
+              {(!data || data.recentEnvios.length === 0) && (
                 <p className="text-zinc-600 text-sm text-center py-10">Sin despachos aún</p>
               )}
               {data?.recentEnvios.map((envio: any) => {

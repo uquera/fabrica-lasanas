@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, StyleSheet } from "@react-pdf/renderer";
+import { Document, Page, Text, View, StyleSheet, Image } from "@react-pdf/renderer";
 
 const orange = "#e86c00";
 const red = "#c41e1e";
@@ -7,7 +7,9 @@ const s = StyleSheet.create({
   page: { padding: 30, fontSize: 9, fontFamily: "Helvetica", color: "#333" },
   // Header
   headerRow: { flexDirection: "row", justifyContent: "space-between", marginBottom: 15 },
-  companyBlock: { width: "55%" },
+  companyBlock: { width: "55%", flexDirection: "row", alignItems: "flex-start", gap: 8 },
+  logoImg: { width: 48, height: 48 },
+  companyText: { flex: 1 },
   companyName: { fontSize: 10, fontWeight: "bold", marginBottom: 2 },
   companyDetail: { fontSize: 8, color: "#555", marginBottom: 1 },
   guiaBox: { width: "40%", borderWidth: 2, borderColor: red, padding: 10, textAlign: "center" },
@@ -51,6 +53,7 @@ const fmt = (n: number) => "$" + n.toLocaleString("es-CL");
 interface GuiaProps {
   folio: string;
   fecha: string;
+  logoSrc?: string;
   cliente: {
     razonSocial: string;
     rut: string;
@@ -66,7 +69,7 @@ interface GuiaProps {
   }[];
 }
 
-export const GuiaDespachoPDF = ({ folio, fecha, cliente, items }: GuiaProps) => {
+export const GuiaDespachoPDF = ({ folio, fecha, logoSrc, cliente, items }: GuiaProps) => {
   const montoNeto = items.reduce((acc, it) => acc + it.cantidad * it.precioUnitario, 0);
   const tasaIva = items[0]?.tasaIva ?? 0.19;
   const iva = Math.round(montoNeto * tasaIva);
