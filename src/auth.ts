@@ -9,14 +9,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "Contraseña", type: "password" },
       },
       async authorize(credentials) {
-        const validUser = process.env.APP_USERNAME ?? "admin";
-        const validPass = process.env.APP_PASSWORD ?? "lasanas2025";
+        const users = [
+          {
+            id: "1",
+            username: process.env.APP_USERNAME ?? "admin",
+            password: process.env.APP_PASSWORD ?? "lasanas2025",
+          },
+          {
+            id: "2",
+            username: process.env.APP_USERNAME_2 ?? "uquera",
+            password: process.env.APP_PASSWORD_2 ?? "1234uquera",
+          },
+        ];
 
-        if (
-          credentials?.username === validUser &&
-          credentials?.password === validPass
-        ) {
-          return { id: "1", name: validUser };
+        const user = users.find(
+          (u) =>
+            u.username === credentials?.username &&
+            u.password === credentials?.password
+        );
+
+        if (user) {
+          return { id: user.id, name: user.username };
         }
         return null;
       },
