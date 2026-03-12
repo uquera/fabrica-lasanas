@@ -1,0 +1,21 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(npx prisma:*)",
+      "Bash(netstat -ano)",
+      "Bash(findstr \":3001\")",
+      "Bash(findstr \"LISTENING\")",
+      "Bash(cmd /c \"taskkill /F /PID 18228\")",
+      "Bash(cmd /c \"taskkill /F /PID 12536 2>nul & taskkill /F /IM node.exe /T 2>nul & del /F /Q \"\"c:\\\\Users\\\\Usuario\\\\Desktop\\\\Proyectos Codigo Antigravity\\\\fabrica-lasanas\\\\.next\\\\dev\\\\lock\"\" 2>nul & echo done\")",
+      "Bash(findstr \":300\")",
+      "Bash(cmd /c \"taskkill /F /PID 18228 /T 2>nul & echo done\")",
+      "Bash(cmd /c \"rd /S /Q \"\"c:\\\\Users\\\\Usuario\\\\Desktop\\\\Proyectos Codigo Antigravity\\\\fabrica-lasanas\\\\.next\"\" 2>nul & echo done\")",
+      "Bash(cmd /c \"wmic process where name=''node.exe'' get processid,commandline 2>nul\")",
+      "Bash(powershell -Command \"Stop-Process -Id 18228 -Force\")",
+      "Bash(powershell -Command \"Remove-Item -Path ''c:\\\\Users\\\\Usuario\\\\Desktop\\\\Proyectos Codigo Antigravity\\\\fabrica-lasanas\\\\.next'' -Recurse -Force -ErrorAction SilentlyContinue; Write-Host ''done''\")",
+      "Bash(sshpass -p 'e9wmbW7zTR?gF?B' ssh -o StrictHostKeyChecking=no -o ConnectTimeout=15 root@31.97.86.247 \"echo ''Connected'' && cat /etc/os-release\")",
+      "Bash(python -c \"import paramiko; print\\(''paramiko ok''\\)\")"
+    ]
+  }
+}
