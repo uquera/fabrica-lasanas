@@ -21,6 +21,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             username: process.env.APP_USERNAME_2 ?? "uquera",
             password: process.env.APP_PASSWORD_2 ?? "1234uquera",
           },
+          {
+            id: "3",
+            username: process.env.APP_USERNAME_3 ?? "timemarket",
+            password: process.env.APP_PASSWORD_3 ?? "1234time",
+          },
         ];
 
         const user = users.find(
