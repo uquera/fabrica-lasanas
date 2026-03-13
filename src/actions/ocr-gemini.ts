@@ -78,27 +78,40 @@ export async function processImageWithGemini(
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
-  const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash-preview-04-17",
+    generationConfig: { temperature: 0 } as any,
+  });
 
-  const prompt = `Eres un asistente de extracción de datos para una fábrica de lasañas.
-Analiza la imagen y extrae la tabla de despacho/planilla.
+  const tiendaList = tiendas.slice(0, 30).join(", ");
 
-La tabla tiene filas por tienda/local y columnas de entrega y devolución:
-- Entrega individual (lasaña individual 550g) — puede llamarse "Ind", "Individual", "550g", "I"
-- Entrega mini (lasaña mini 200g) — puede llamarse "Mini", "200g", "M", "Ch"
-- Devolución individual — puede llamarse "Dev Ind", "Ret Ind", "Dev I", "Merma Ind"
-- Devolución mini — puede llamarse "Dev Mini", "Ret Mini", "Dev M", "Merma Mini"
+  const prompt = `Eres un sistema de lectura óptica de planillas de despacho de lasañas.
 
-REGLAS IMPORTANTES:
-- Copia los nombres de tiendas EXACTAMENTE como aparecen en la imagen (no los cambies ni corrijas)
-- Si una columna no existe en la imagen, deja el valor en 0
-- Si solo hay una columna de "Entrega" sin separar por tipo, ponla toda en entregaIndividual
-- Ignora filas de TOTAL, SUBTOTAL o encabezados
-- Los valores son cantidades de unidades (números enteros)
-- No inventes datos: si no puedes leer un número claramente, usa 0
+FORMATO DE LA PLANILLA:
+La imagen contiene una tabla con estas secciones:
+1. Columna izquierda: nombre de la tienda/local
+2. Sección "ENTREGA": cuántas unidades se ENTREGARON a cada tienda
+   - Sub-columna "Individual 550g" (o "Ind", "Individual", "I") → entregaIndividual
+   - Sub-columna "Mini 200g" (o "Mini", "Ch", "M") → entregaMini
+   - Sub-columna "Restituir en Tienda" (si existe) → IGNORAR o sumar a entregaIndividual
+3. Sección "DEVOLUCIÓN" (o "Devoluciones", "Merma"): cuántas unidades se DEVOLVIERON
+   - Sub-columna Individual → devolucionIndividual
+   - Sub-columna Mini → devolucionMini
 
-Responde ÚNICAMENTE con JSON válido (sin bloques de código, sin texto adicional):
-{"rows":[{"tienda":"nombre exacto","entregaIndividual":0,"entregaMini":0,"devolucionIndividual":0,"devolucionMini":0}]}`;
+TIENDAS CONOCIDAS (úsalas como referencia para escribir los nombres):
+${tiendaList}
+
+INSTRUCCIONES:
+- Lee TODOS los números en cada celda cuidadosamente
+- Si una celda está vacía o tiene guión "-", el valor es 0
+- Ignora filas de TOTAL, subtotal, y filas de encabezado
+- Copia el nombre de la tienda EXACTAMENTE como aparece en la imagen
+- Si hay letras en una celda (ej: "4 I"), extrae solo el número (4)
+- Los números pueden ser 1 cifra (1-9) o 2 cifras (10-30)
+- NO dejes valores vacíos — si no ves número, usa 0
+
+RESPONDE ÚNICAMENTE con este JSON (sin bloques de código, sin texto adicional):
+{"rows":[{"tienda":"nombre","entregaIndividual":4,"entregaMini":0,"devolucionIndividual":0,"devolucionMini":0}]}`;
 
   try {
     const result = await model.generateContent([
@@ -150,8 +163,8 @@ Responde ÚNICAMENTE con JSON válido (sin bloques de código, sin texto adicion
     }
 
     return resultRows;
-  } catch (err) {
-    console.error("[OCR Gemini] Error parsing image:", err);
+  } catch (err: any) {
+    console.error("[OCR Gemini] Error:", err?.message ?? err);
     return makeEmptyRows(tiendas);
   }
 }
