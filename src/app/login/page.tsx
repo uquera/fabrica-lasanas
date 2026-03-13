@@ -42,19 +42,18 @@ export default function LoginPage() {
 
       <div className="w-full max-w-sm relative z-10">
         {/* Logo / Brand */}
-        <div className="text-center mb-10">
-          <div className="inline-flex items-center justify-center w-24 h-24 bg-orange-500/5 rounded-full mb-4 relative overflow-hidden">
-            <Image 
+        <div className="text-center mb-8">
+          <div className="relative w-52 h-52 mx-auto mb-2">
+            <Image
               src="/logo.png"
               alt="Doña Any"
               fill
-              className="object-contain scale-110"
+              className="object-contain drop-shadow-2xl"
               priority
               unoptimized
             />
           </div>
-          <h1 className="text-2xl font-bold tracking-tight">Doña Any</h1>
-          <p className="text-zinc-500 text-sm mt-1">Sistema de gestión de despachos</p>
+          <p className="text-zinc-500 text-sm">Sistema de gestión de despachos</p>
         </div>
 
         {/* Card */}
