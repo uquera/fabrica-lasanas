@@ -12,6 +12,7 @@
     "@google/generative-ai": "^0.24.1",
     "@libsql/client": "^0.17.0",
     "@prisma/adapter-libsql": "^7.4.2",
+    "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.4.2",
     "@react-pdf/renderer": "^4.3.2",
     "@types/nodemailer": "^7.0.11",
@@ -21,6 +22,7 @@
     "next": "16.1.6",
     "next-auth": "^5.0.0-beta.30",
     "nodemailer": "^8.0.2",
+    "pg": "^8.20.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
     "tailwind-merge": "^3.5.0",
@@ -29,6 +31,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
+    "@types/pg": "^8.18.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",

@@ -1,30 +1,57 @@
-const { createClient } = require("@libsql/client");
+import "dotenv/config";
+import { PrismaClient } from "@prisma/client";
+import { Pool } from "pg";
+import { PrismaPg } from "@prisma/adapter-pg";
 
-const client = createClient({
-  url: "file:./prisma/dev.db",
-});
+const connectionString = process.env.DIRECT_URL || process.env.DATABASE_URL;
+const pool = new Pool({ connectionString });
+const adapter = new PrismaPg(pool as any);
+const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  console.log("🌱 Empezando el seed (Direct SQL)...");
+  console.log("🌱 Empezando el seed...");
 
   // Insertar Producto
-  await client.execute({
-    sql: "INSERT OR IGNORE INTO Producto (id, sku, nombre, precioBase, updatedAt) VALUES (?, ?, ?, ?, ?)",
-    args: ["prod_1", "LAS-TRAD-01", "Lasaña Tradicional", 6000, new Date().toISOString()],
+  await prisma.producto.upsert({
+    where: { sku: "LAS-TRAD-01" },
+    update: {},
+    create: {
+      id: "prod_1",
+      sku: "LAS-TRAD-01",
+      nombre: "Lasaña Tradicional",
+      precioBase: 6000,
+    },
   });
   console.log("Producto verificado/insertado.");
 
   // Insertar Cliente
-  await client.execute({
-    sql: "INSERT OR IGNORE INTO Cliente (id, rut, razonSocial, direccion, giro, email, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)",
-    args: ["cli_1", "76.123.456-7", "Almacén Don Tito SpA", "Calle Falsa 123", "Minimarket", "tito@almacen.cl", new Date().toISOString()],
-  });
+  const clienteCount = await prisma.cliente.count({ where: { id: "cli_1" } });
+  if (clienteCount === 0) {
+    await prisma.cliente.create({
+      data: {
+        id: "cli_1",
+        rut: "76.123.456-7",
+        razonSocial: "Almacén Don Tito SpA",
+        direccion: "Calle Falsa 123",
+        giro: "Minimarket",
+        email: "tito@almacen.cl",
+      },
+    });
+  }
   console.log("Cliente verificado/insertado.");
 
-  const products = await client.execute("SELECT * FROM Producto");
-  console.log("Productos en DB:", products.rows.length);
+  const count = await prisma.producto.count();
+  console.log("Productos en DB:", count);
 
   console.log("✅ Verificación SQL exitosa.");
 }
 
-main().catch(console.error);
+main()
+  .catch((e) => {
+    console.error(e);
+    process.exit(1);
+  })
+  .finally(async () => {
+    await prisma.$disconnect();
+    await pool.end();
+  });
