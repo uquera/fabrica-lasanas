@@ -4,7 +4,6 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Loader2, Lock, User } from "lucide-react";
-import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -43,16 +42,15 @@ export default function LoginPage() {
       <div className="w-full max-w-sm relative z-10">
         {/* Logo / Brand */}
         <div className="text-center mb-8">
-          <div className="relative w-52 h-52 mx-auto mb-2">
-            <Image
-              src="/logo.png"
-              alt="Doña Any"
-              fill
-              className="object-contain drop-shadow-2xl"
-              priority
-              unoptimized
-            />
-          </div>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src="/logo.png"
+            alt="Doña Any"
+            width={220}
+            height={220}
+            className="mx-auto mb-2 drop-shadow-2xl"
+            style={{ maxWidth: "220px" }}
+          />
           <p className="text-zinc-500 text-sm">Sistema de gestión de despachos</p>
         </div>
 
