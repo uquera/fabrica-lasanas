@@ -51,7 +51,16 @@ export default function CargarPlanillaPage() {
         if (res.ok) {
           const parsed = await res.json();
           setData(parsed.rows);
-          setOcrStatus("¡Análisis completado con IA!");
+          if (parsed.success) {
+            setOcrStatus("¡Análisis completado con IA!");
+          } else {
+            const errMsg = parsed.ocrError ?? "Error desconocido";
+            if (errMsg.includes("429") || errMsg.includes("quota")) {
+              setOcrStatus("⚠️ Límite de API alcanzado. Ingresa los datos manualmente.");
+            } else {
+              setOcrStatus(`⚠️ No se pudo analizar la imagen. Ingresa los datos manualmente.`);
+            }
+          }
         } else {
           throw new Error("OCR request failed");
         }

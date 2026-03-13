@@ -32,8 +32,8 @@ export async function POST(req: NextRequest) {
     const tiendas = await getClienteNames();
     const emptyRows = makeEmptyRows(tiendas);
 
-    const rows = await processImageWithGemini(base64, mimeType || "image/jpeg", tiendas);
-    return NextResponse.json({ rows, emptyRows });
+    const ocr = await processImageWithGemini(base64, mimeType || "image/jpeg", tiendas);
+    return NextResponse.json({ rows: ocr.rows, emptyRows, success: ocr.success, ocrError: ocr.error ?? null });
   } catch (err) {
     console.error("[API/OCR] Error:", err);
     return NextResponse.json({ error: "OCR processing failed" }, { status: 500 });

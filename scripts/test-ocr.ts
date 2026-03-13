@@ -19,9 +19,10 @@ async function main() {
   const base64 = imageBuffer.toString('base64');
 
   console.log('Testing Gemini OCR with planilla image...');
-  const rows = await processImageWithGemini(base64, 'image/jpeg', []);
+  const { rows, success, error } = await processImageWithGemini(base64, 'image/jpeg', []);
+  console.log('Success:', success, error ?? '');
   console.log('Result:');
-  console.table(rows.map(r => ({
+  console.table(rows.map((r: any) => ({
     Tienda: r.tienda,
     EntInd: r.entregaIndividual,
     EntMini: r.entregaMini,

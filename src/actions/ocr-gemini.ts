@@ -11,6 +11,12 @@ export interface PlanillaRow {
 
 export type PlanillaData = PlanillaRow[];
 
+export interface OcrResult {
+  rows: PlanillaData;
+  success: boolean;
+  error?: string;
+}
+
 export function makeEmptyRows(tiendas: string[]): PlanillaData {
   return tiendas.map((t) => ({
     tienda: t,
@@ -21,7 +27,10 @@ export function makeEmptyRows(tiendas: string[]): PlanillaData {
   }));
 }
 
-/** Normalizes a string for fuzzy comparison: lowercase, no accents, no extra spaces */
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
 function normalize(s: string): string {
   return s
     .toLowerCase()
@@ -32,49 +41,49 @@ function normalize(s: string): string {
     .trim();
 }
 
-/**
- * Tries to match a tienda name from the image to a known client name.
- * Returns the known client name if found, otherwise returns the original.
- */
 function matchTienda(imageName: string, knownTiendas: string[]): string {
   const normImage = normalize(imageName);
 
-  // 1. Exact match (case-insensitive, accent-insensitive)
   for (const t of knownTiendas) {
     if (normalize(t) === normImage) return t;
   }
-
-  // 2. One contains the other
   for (const t of knownTiendas) {
     const normT = normalize(t);
     if (normT.includes(normImage) || normImage.includes(normT)) return t;
   }
-
-  // 3. First word match (e.g., "Unimarc" matches "Unimarc Las Condes")
-  const firstWordImage = normImage.split(" ")[0];
-  if (firstWordImage.length >= 4) {
+  const firstWord = normImage.split(" ")[0];
+  if (firstWord.length >= 4) {
     for (const t of knownTiendas) {
-      if (normalize(t).startsWith(firstWordImage)) return t;
+      if (normalize(t).startsWith(firstWord)) return t;
     }
   }
-
-  // No match — return as-is (will create a new client)
   return imageName;
 }
 
-/**
- * Uses Google Gemini Vision to parse a delivery sheet image.
- * Receives the list of known stores for fuzzy-matching after OCR.
- */
+async function callGemini(model: any, parts: any[]): Promise<string> {
+  try {
+    const result = await model.generateContent(parts);
+    return result.response.text().trim();
+  } catch (err: any) {
+    // Retry once after 8 seconds on rate limit
+    if (err?.status === 429 || err?.message?.includes("429") || err?.message?.includes("quota")) {
+      console.warn("[OCR] Rate limit hit, retrying in 8s...");
+      await sleep(8000);
+      const result = await model.generateContent(parts);
+      return result.response.text().trim();
+    }
+    throw err;
+  }
+}
+
 export async function processImageWithGemini(
   base64Image: string,
   mimeType: string,
   tiendas: string[]
-): Promise<PlanillaData> {
+): Promise<OcrResult> {
   const apiKey = process.env.GEMINI_API_KEY;
   if (!apiKey) {
-    console.warn("[OCR] GEMINI_API_KEY not set. Returning empty rows.");
-    return makeEmptyRows(tiendas);
+    return { rows: makeEmptyRows(tiendas), success: false, error: "GEMINI_API_KEY no configurada" };
   }
 
   const genAI = new GoogleGenerativeAI(apiKey);
@@ -93,12 +102,12 @@ La imagen contiene una tabla con estas secciones:
 2. Sección "ENTREGA": cuántas unidades se ENTREGARON a cada tienda
    - Sub-columna "Individual 550g" (o "Ind", "Individual", "I") → entregaIndividual
    - Sub-columna "Mini 200g" (o "Mini", "Ch", "M") → entregaMini
-   - Sub-columna "Restituir en Tienda" (si existe) → IGNORAR o sumar a entregaIndividual
+   - Sub-columna "Restituir en Tienda" (si existe) → IGNORAR
 3. Sección "DEVOLUCIÓN" (o "Devoluciones", "Merma"): cuántas unidades se DEVOLVIERON
    - Sub-columna Individual → devolucionIndividual
    - Sub-columna Mini → devolucionMini
 
-TIENDAS CONOCIDAS (úsalas como referencia para escribir los nombres):
+TIENDAS CONOCIDAS (úsalas como referencia para los nombres):
 ${tiendaList}
 
 INSTRUCCIONES:
@@ -106,38 +115,28 @@ INSTRUCCIONES:
 - Si una celda está vacía o tiene guión "-", el valor es 0
 - Ignora filas de TOTAL, subtotal, y filas de encabezado
 - Copia el nombre de la tienda EXACTAMENTE como aparece en la imagen
-- Si hay letras en una celda (ej: "4 I"), extrae solo el número (4)
 - Los números pueden ser 1 cifra (1-9) o 2 cifras (10-30)
 - NO dejes valores vacíos — si no ves número, usa 0
 
 RESPONDE ÚNICAMENTE con este JSON (sin bloques de código, sin texto adicional):
 {"rows":[{"tienda":"nombre","entregaIndividual":4,"entregaMini":0,"devolucionIndividual":0,"devolucionMini":0}]}`;
 
+  const parts = [
+    { inlineData: { mimeType: mimeType as "image/jpeg" | "image/png" | "image/webp", data: base64Image } },
+    { text: prompt },
+  ];
+
   try {
-    const result = await model.generateContent([
-      {
-        inlineData: {
-          mimeType: mimeType as "image/jpeg" | "image/png" | "image/webp",
-          data: base64Image,
-        },
-      },
-      { text: prompt },
-    ]);
+    const text = await callGemini(model, parts);
+    console.log("[OCR Gemini] Raw response:", text.slice(0, 600));
 
-    const text = result.response.text().trim();
-    console.log("[OCR Gemini] Raw response:", text.slice(0, 500));
-
-    const jsonStr = text
-      .replace(/```json\n?/gi, "")
-      .replace(/```\n?/gi, "")
-      .trim();
+    const jsonStr = text.replace(/```json\n?/gi, "").replace(/```\n?/gi, "").trim();
     const parsed = JSON.parse(jsonStr);
 
     if (!parsed.rows || !Array.isArray(parsed.rows)) {
-      throw new Error("Invalid JSON structure from Gemini");
+      throw new Error("Respuesta JSON inválida de Gemini");
     }
 
-    // Build result: for each row Gemini found, fuzzy-match the tienda name
     const resultRows: PlanillaData = parsed.rows
       .filter((row: any) => row.tienda && typeof row.tienda === "string")
       .map((row: any) => ({
@@ -148,23 +147,17 @@ RESPONDE ÚNICAMENTE con este JSON (sin bloques de código, sin texto adicional)
         devolucionMini: Math.max(0, Math.round(Number(row.devolucionMini) || 0)),
       }));
 
-    // Add known tiendas that Gemini didn't find (with zeros)
     const foundNames = new Set(resultRows.map((r) => normalize(r.tienda)));
     for (const t of tiendas) {
       if (!foundNames.has(normalize(t))) {
-        resultRows.push({
-          tienda: t,
-          entregaIndividual: 0,
-          entregaMini: 0,
-          devolucionIndividual: 0,
-          devolucionMini: 0,
-        });
+        resultRows.push({ tienda: t, entregaIndividual: 0, entregaMini: 0, devolucionIndividual: 0, devolucionMini: 0 });
       }
     }
 
-    return resultRows;
+    return { rows: resultRows, success: true };
   } catch (err: any) {
-    console.error("[OCR Gemini] Error:", err?.message ?? err);
-    return makeEmptyRows(tiendas);
+    const msg = err?.message ?? String(err);
+    console.error("[OCR Gemini] Error:", msg);
+    return { rows: makeEmptyRows(tiendas), success: false, error: msg };
   }
 }
