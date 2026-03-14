@@ -276,10 +276,10 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
                 Acciones rápidas
               </p>
               {[
-                { label: "Nuevo despacho",  href: "/envios/nuevo",    color: "text-orange-400" },
-                { label: "Cargar planilla", href: "/cargar-planilla", color: "text-blue-400" },
-                { label: "Registrar merma", href: "/mermas",          color: "text-red-400" },
-                { label: "Ver clientes",    href: "/clientes",        color: "text-emerald-400" },
+                { label: "Nuevo despacho",  href: "/envios/nuevo", color: "text-orange-400" },
+                { label: "Registrar merma", href: "/mermas",       color: "text-red-400" },
+                { label: "Ver clientes",    href: "/clientes",     color: "text-emerald-400" },
+                { label: "Ver guías",       href: "/guias",        color: "text-blue-400" },
               ].map((item) => (
                 <Link
                   key={item.href}

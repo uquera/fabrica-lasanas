@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   Users,
   Truck,
-  Camera,
   AlertTriangle,
   DollarSign,
   FileText,
@@ -22,14 +21,13 @@ import {
 } from "lucide-react";
 
 const navItems = [
-  { label: "Dashboard",       href: "/",                icon: LayoutDashboard },
-  { label: "Clientes",        href: "/clientes",        icon: Users },
-  { label: "Nuevo Despacho",  href: "/envios/nuevo",    icon: Truck },
-  { label: "Cargar Planilla", href: "/cargar-planilla", icon: Camera },
-  { label: "Mermas",          href: "/mermas",          icon: AlertTriangle },
-  { label: "Liquidaciones",   href: "/liquidaciones",   icon: DollarSign },
-  { label: "Guías",           href: "/guias",           icon: FileText },
-  { label: "Reportes",        href: "/reportes",        icon: BarChart2 },
+  { label: "Dashboard",      href: "/",             icon: LayoutDashboard },
+  { label: "Clientes",       href: "/clientes",     icon: Users },
+  { label: "Nuevo Despacho", href: "/envios/nuevo", icon: Truck },
+  { label: "Mermas",         href: "/mermas",       icon: AlertTriangle },
+  { label: "Liquidaciones",  href: "/liquidaciones",icon: DollarSign },
+  { label: "Guías",          href: "/guias",        icon: FileText },
+  { label: "Reportes",       href: "/reportes",     icon: BarChart2 },
 ];
 
 export function Sidebar() {
