@@ -14,6 +14,7 @@ import {
   DollarSign,
   FileText,
   BarChart2,
+  Package,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -28,6 +29,7 @@ const navItems = [
   { label: "Liquidaciones",  href: "/liquidaciones",icon: DollarSign },
   { label: "Guías",          href: "/guias",        icon: FileText },
   { label: "Reportes",       href: "/reportes",     icon: BarChart2 },
+  { label: "Productos",      href: "/productos",    icon: Package },
 ];
 
 export function Sidebar() {

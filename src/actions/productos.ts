@@ -52,17 +52,29 @@ export async function createProducto(formData: FormData) {
   }
 }
 
-export async function updateProducto(id: string, precioBase: number, tasaIva: number) {
+export async function updateProducto(id: string, data: { precioBase: number; tasaIva: number; nombre: string; sku: string }) {
   try {
-    await prisma.producto.update({
-      where: { id },
-      data: { precioBase, tasaIva },
-    });
+    await prisma.producto.update({ where: { id }, data });
     revalidatePath("/productos");
     revalidatePath("/envios/nuevo");
     return { success: true };
   } catch (error) {
     console.error("Error al actualizar producto:", error);
-    return { success: false, error: "Error al actualizar el producto." };
+    return { success: false, error: "Error al actualizar el producto. Verifica que el SKU no esté duplicado." };
+  }
+}
+
+export async function deleteProducto(id: string) {
+  try {
+    await prisma.producto.delete({ where: { id } });
+    revalidatePath("/productos");
+    revalidatePath("/envios/nuevo");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error al eliminar producto:", error);
+    if (error.code === "P2003" || error.code === "P2014" || error.message?.includes("Foreign key")) {
+      return { success: false, error: "No se puede eliminar: el producto tiene despachos o mermas asociadas." };
+    }
+    return { success: false, error: "Error al eliminar el producto." };
   }
 }
