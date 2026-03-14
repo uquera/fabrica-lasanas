@@ -151,14 +151,23 @@ export default function LoginPage() {
                 "Ingresar"
               )}
             </button>
-            <div className="mt-4 text-center">
+            <div className="mt-4 flex items-center justify-center gap-4 text-xs text-zinc-600">
               <a
                 href="https://wa.me/56958315506?text=Hola,%20tengo%20problemas%20para%20ingresar%20al%20sistema"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs text-zinc-500 hover:text-orange-400 transition-colors underline-offset-4 hover:underline"
+                className="hover:text-orange-400 transition-colors underline-offset-4 hover:underline"
               >
-                ¿Problemas para ingresar? Contáctanos por WhatsApp
+                ¿Problemas para ingresar?
+              </a>
+              <span className="w-1 h-1 rounded-full bg-zinc-700" />
+              <a
+                href="https://wa.me/56958315506?text=Hola,%20necesito%20ayuda%20con%20el%20sistema%20Doña%20Any"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hover:text-orange-400 transition-colors underline-offset-4 hover:underline"
+              >
+                Ayuda
               </a>
             </div>
           </form>
