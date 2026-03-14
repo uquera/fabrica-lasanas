@@ -114,8 +114,17 @@ export default function ReportesPage() {
               <ChevronLeft className="w-5 h-5" />
             </button>
 
-            <div className="min-w-[250px] text-center">
-              <p className="text-lg font-bold capitalize">{reporte?.label ?? "..."}</p>
+            <div className="relative">
+              <label className="flex items-center gap-2 cursor-pointer px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 transition-colors min-w-[220px] justify-center">
+                <Calendar className="w-4 h-4 text-zinc-400 shrink-0" />
+                <span className="text-sm font-bold capitalize">{reporte?.label ?? "..."}</span>
+                <input
+                  type="date"
+                  value={refDate.toISOString().split("T")[0]}
+                  onChange={(e) => { if (e.target.value) setRefDate(new Date(e.target.value + "T12:00:00")); }}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full [color-scheme:dark]"
+                />
+              </label>
             </div>
 
             <button onClick={() => setRefDate(navigate(mode, refDate, 1))} className="p-2 rounded-xl bg-zinc-800 hover:bg-zinc-700 transition-colors">
@@ -128,7 +137,7 @@ export default function ReportesPage() {
             onClick={goToday}
             className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-zinc-800 hover:bg-zinc-700 text-sm font-medium transition-colors text-zinc-400 hover:text-white"
           >
-            <Calendar className="w-4 h-4" /> Hoy
+            Hoy
           </button>
         </div>
 
