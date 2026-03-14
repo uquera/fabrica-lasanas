@@ -6,6 +6,74 @@ import { LogOut, Package, ChevronDown, Eye, Search, X, CheckCircle, Upload, Load
 import Image from "next/image";
 import { marcarPagado } from "@/actions/portal";
 
+// ── SVG Donut Chart ────────────────────────────────────────────────────────
+function DonutChart({ pagado, pendiente }: { pagado: number; pendiente: number }) {
+  const total = pagado + pendiente || 1;
+  const r = 40, cx = 48, cy = 48, circ = 2 * Math.PI * r;
+  const pagPct = pagado / total;
+  const pendPct = pendiente / total;
+  return (
+    <div className="flex flex-col items-center gap-2">
+      <svg width={96} height={96} viewBox="0 0 96 96">
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#27272a" strokeWidth={11} />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#10b981" strokeWidth={11}
+          strokeDasharray={`${pagPct * circ} ${circ}`} strokeDashoffset={circ * 0.25} strokeLinecap="round" />
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke="#ef4444" strokeWidth={11}
+          strokeDasharray={`${pendPct * circ} ${circ}`} strokeDashoffset={circ * (0.25 - pagPct)} strokeLinecap="round" />
+        <text x={cx} y={cy - 4} textAnchor="middle" fontSize={13} fill="#e4e4e7" fontWeight="bold">
+          {Math.round(pagPct * 100)}%
+        </text>
+        <text x={cx} y={cy + 10} textAnchor="middle" fontSize={9} fill="#71717a">pagado</text>
+      </svg>
+      <div className="flex gap-4 text-[10px]">
+        <span className="flex items-center gap-1 text-emerald-400"><span className="w-2 h-2 rounded-full bg-emerald-500 inline-block" />Pagado</span>
+        <span className="flex items-center gap-1 text-red-400"><span className="w-2 h-2 rounded-full bg-red-500 inline-block" />Pendiente</span>
+      </div>
+    </div>
+  );
+}
+
+// ── SVG Bar Chart (últimos 6 meses) ───────────────────────────────────────
+function BarChart({ envios }: { envios: { fecha: string; detalles: { cantidad: number }[] }[] }) {
+  const now = new Date();
+  const months = Array.from({ length: 6 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth() - (5 - i), 1);
+    return { year: d.getFullYear(), month: d.getMonth(), label: d.toLocaleDateString("es-CL", { month: "short" }) };
+  });
+  const data = months.map(({ year, month, label }) => {
+    const unidades = envios
+      .filter((e) => { const d = new Date(e.fecha); return d.getFullYear() === year && d.getMonth() === month; })
+      .reduce((s, e) => s + e.detalles.reduce((ss, d) => ss + d.cantidad, 0), 0);
+    return { label, unidades };
+  });
+  const maxVal = Math.max(...data.map((d) => d.unidades), 1);
+  const barW = 28, gap = 10, H = 70;
+  return (
+    <div>
+      <p className="text-[10px] text-zinc-500 uppercase tracking-wider mb-2">Unidades últimos 6 meses</p>
+      <svg width={234} height={H + 20} viewBox={`0 0 234 ${H + 20}`}>
+        {data.map((d, i) => {
+          const barH = (d.unidades / maxVal) * H;
+          const x = i * (barW + gap);
+          const isLast = i === data.length - 1;
+          return (
+            <g key={i}>
+              <rect x={x} y={H - barH} width={barW} height={barH}
+                fill={isLast ? "#f97316" : "#3f3f46"} rx={4} />
+              {d.unidades > 0 && (
+                <text x={x + barW / 2} y={H - barH - 3} textAnchor="middle" fontSize={9} fill={isLast ? "#f97316" : "#71717a"}>
+                  {d.unidades}
+                </text>
+              )}
+              <text x={x + barW / 2} y={H + 14} textAnchor="middle" fontSize={9} fill="#52525b">{d.label}</text>
+            </g>
+          );
+        })}
+      </svg>
+    </div>
+  );
+}
+
 type Detalle = {
   cantidad: number;
   producto: { nombre: string; precioBase: number; tasaIva: number };
@@ -291,6 +359,16 @@ export default function PortalView({ envios, razonSocial }: { envios: Envio[]; r
             </p>
             <p className="text-[10px] text-zinc-600 mt-0.5">fecha de despacho</p>
           </div>
+        </div>
+
+        {/* Charts */}
+        <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-5 flex flex-col sm:flex-row items-center justify-around gap-6">
+          <DonutChart
+            pagado={cuentaCorriente.totalPagado}
+            pendiente={cuentaCorriente.totalPendiente}
+          />
+          <div className="border-l border-zinc-800 hidden sm:block self-stretch" />
+          <BarChart envios={envios} />
         </div>
 
         {/* Filtros */}

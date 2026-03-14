@@ -4,6 +4,9 @@ import { NextResponse } from "next/server";
 const PORTAL_USERNAMES = [
   process.env.APP_USERNAME_3 ?? "timemarket",
   process.env.APP_USERNAME_4 ?? "susana",
+  // Time Market sub-usuarios por tienda
+  "tm.vivar", "tm.terranova", "tm.chipana", "tm.playabrava", "tm.anibalpinto",
+  "tm.tarapaca", "tm.losmolles", "tm.bilbao2", "tm.peninsula",
 ];
 
 export default auth((req) => {
