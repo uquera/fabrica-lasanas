@@ -24,6 +24,8 @@ export async function createMerma(formData: FormData) {
   const productoId = formData.get("productoId") as string;
   const cantidad = parseInt(formData.get("cantidad") as string);
   const motivo = formData.get("motivo") as string;
+  const fechaStr = formData.get("fecha") as string;
+  const envioId = formData.get("envioId") as string | null;
 
   try {
     await prisma.merma.create({
@@ -31,7 +33,9 @@ export async function createMerma(formData: FormData) {
         clienteId,
         productoId,
         cantidad,
-        motivo,
+        motivo: motivo || null,
+        fecha: fechaStr ? new Date(fechaStr + "T12:00:00") : new Date(),
+        envioId: envioId || null,
       },
     });
     revalidatePath("/mermas");
