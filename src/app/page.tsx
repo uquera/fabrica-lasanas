@@ -1,10 +1,12 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
-import { TrendingUp, Users, Truck, AlertTriangle, FileText, ArrowRight, Clock } from "lucide-react";
+import { TrendingUp, Users, Truck, AlertTriangle, FileText, ArrowRight, Clock, ShoppingCart, Check, X } from "lucide-react";
 import { Suspense } from "react";
 import DashboardDateFilter from "@/components/DashboardDateFilter";
 import DashboardChart from "@/components/DashboardChart";
 import ClientRanking from "@/components/ClientRanking";
+import { getSolicitudesPendientes } from "@/actions/solicitudes";
+import SolicitudActions from "@/components/SolicitudActions";
 
 async function getDashboardData(range: string = "month", fromParam?: string, toParam?: string) {
   const now = new Date();
@@ -168,7 +170,10 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
   const range = searchParams.range || "month";
   const fromParam = searchParams.from;
   const toParam   = searchParams.to;
-  const data = await getDashboardData(range, fromParam, toParam);
+  const [data, solicitudes] = await Promise.all([
+    getDashboardData(range, fromParam, toParam),
+    getSolicitudesPendientes(),
+  ]);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 p-6 lg:p-8 pt-16 lg:pt-8">
@@ -257,6 +262,31 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
 
           {/* Quick actions + alerts */}
           <div className="space-y-4">
+            {solicitudes.length > 0 && (
+              <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4 space-y-3">
+                <div className="flex items-center gap-2">
+                  <ShoppingCart className="w-4 h-4 text-orange-400" />
+                  <span className="text-sm font-bold text-orange-400">
+                    {solicitudes.length} pedido{solicitudes.length > 1 ? "s" : ""} pendiente{solicitudes.length > 1 ? "s" : ""}
+                  </span>
+                </div>
+                {solicitudes.map((s: { id: string; tienda: string; cantidad: number; fechaEntrega: Date; nota: string | null }) => (
+                  <div key={s.id} className="bg-black/30 rounded-xl p-3 text-xs space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-white">{s.tienda}</span>
+                      <span className="text-orange-400 font-bold">{s.cantidad} unid.</span>
+                    </div>
+                    <p className="text-zinc-500">
+                      Entrega: <span className="text-zinc-300">
+                        {new Date(s.fechaEntrega).toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "short" })}
+                      </span>
+                    </p>
+                    {s.nota && <p className="text-zinc-600 italic">"{s.nota}"</p>}
+                    <SolicitudActions id={s.id} />
+                  </div>
+                ))}
+              </div>
+            )}
             {data && data.guiasPendientes > 0 && (
               <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4">
                 <div className="flex items-center gap-2 mb-1">

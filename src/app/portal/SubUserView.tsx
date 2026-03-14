@@ -5,11 +5,12 @@ import { signOut } from "next-auth/react";
 import {
   LogOut, Package, Eye, CheckCircle, Upload, Loader2, X,
   ExternalLink, AlertTriangle, ShieldAlert, Plus, Minus,
-  TrendingUp, Clock, CreditCard, ChevronDown,
+  TrendingUp, Clock, CreditCard, ChevronDown, ShoppingCart, CalendarCheck,
 } from "lucide-react";
 import Image from "next/image";
 import { marcarPagado } from "@/actions/portal";
 import { createMerma } from "@/actions/mermas";
+import { createSolicitudPedido } from "@/actions/solicitudes";
 
 type Detalle = { cantidad: number; producto: { nombre: string; precioBase: number; tasaIva: number } };
 type Envio = {
@@ -114,7 +115,42 @@ export default function SubUserView({
 }: {
   envios: Envio[]; mermas: Merma[]; productos: Producto[]; clienteId: string; tienda: string;
 }) {
-  const [tab, setTab] = useState<"pedidos" | "mermas">("pedidos");
+  const [tab, setTab] = useState<"pedidos" | "mermas" | "pedido">("pedidos");
+
+  // ── Próximos martes y viernes ───────────────────────────────────────────
+  function proximoDia(dia: number): Date { // 2=martes, 5=viernes
+    const hoy = new Date();
+    let diff = dia - hoy.getDay();
+    if (diff <= 0) diff += 7;
+    const d = new Date(hoy);
+    d.setDate(hoy.getDate() + diff);
+    d.setHours(0, 0, 0, 0);
+    return d;
+  }
+  const proximoMartes  = proximoDia(2);
+  const proximoViernes = proximoDia(5);
+  const [fechaEntrega, setFechaEntrega] = useState<Date>(proximoMartes);
+  const [pedidoCantidad, setPedidoCantidad] = useState(10);
+  const [pedidoNota, setPedidoNota] = useState("");
+  const [pedidoSending, setPedidoSending] = useState(false);
+  const [pedidoOk, setPedidoOk] = useState(false);
+
+  async function handlePedido(e: React.FormEvent) {
+    e.preventDefault();
+    setPedidoSending(true);
+    await createSolicitudPedido({
+      clienteId,
+      tienda,
+      cantidad: pedidoCantidad,
+      nota: pedidoNota,
+      fechaEntrega: fechaEntrega.toISOString(),
+    });
+    setPedidoSending(false);
+    setPedidoOk(true);
+    setPedidoCantidad(10);
+    setPedidoNota("");
+    setTimeout(() => setPedidoOk(false), 5000);
+  }
   const [pagoModal, setPagoModal] = useState<{ envioId: string; folio: number | null } | null>(null);
   const [pagoFile, setPagoFile] = useState<File | null>(null);
   const [pagando, setPagando] = useState(false);
@@ -302,13 +338,17 @@ export default function SubUserView({
         </div>
 
         {/* Tabs */}
-        <div className="flex bg-zinc-900 rounded-2xl p-1 gap-1 w-fit">
-          {(["pedidos", "mermas"] as const).map((t) => (
-            <button key={t} onClick={() => setTab(t)}
-              className={`px-5 py-2 rounded-xl text-sm font-bold transition-all capitalize ${
-                tab === t ? "bg-orange-500 text-black" : "text-zinc-500 hover:text-white"
+        <div className="flex bg-zinc-900 rounded-2xl p-1 gap-1 w-fit flex-wrap">
+          {([
+            { id: "pedidos", label: "Mis Pedidos" },
+            { id: "pedido",  label: "Hacer Pedido" },
+            { id: "mermas",  label: "Reportar Merma" },
+          ] as const).map((t) => (
+            <button key={t.id} onClick={() => setTab(t.id)}
+              className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${
+                tab === t.id ? "bg-orange-500 text-black" : "text-zinc-500 hover:text-white"
               }`}>
-              {t === "pedidos" ? "Mis Pedidos" : "Reportar Merma"}
+              {t.label}
             </button>
           ))}
         </div>
@@ -403,6 +443,92 @@ export default function SubUserView({
               )}
             </div>
           </>
+        )}
+
+        {/* Hacer Pedido tab */}
+        {tab === "pedido" && (
+          <div className="max-w-md">
+            <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
+              <div className="flex items-center gap-3 mb-5">
+                <div className="p-2 bg-orange-500/10 rounded-xl">
+                  <ShoppingCart className="w-4 h-4 text-orange-400" />
+                </div>
+                <div>
+                  <h2 className="font-bold">Solicitar Pedido</h2>
+                  <p className="text-xs text-zinc-500">Se agendará para el martes o viernes más próximo</p>
+                </div>
+              </div>
+
+              {pedidoOk && (
+                <div className="mb-5 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm flex items-center gap-2">
+                  <CalendarCheck className="w-4 h-4 shrink-0" />
+                  Pedido enviado. Doña Any lo confirmará pronto.
+                </div>
+              )}
+
+              <form onSubmit={handlePedido} className="space-y-5">
+                {/* Fecha de entrega */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Fecha de entrega</label>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[proximoMartes, proximoViernes].map((fecha) => {
+                      const label = fecha.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "short" });
+                      const isSelected = fechaEntrega.toDateString() === fecha.toDateString();
+                      return (
+                        <button
+                          key={fecha.toISOString()}
+                          type="button"
+                          onClick={() => setFechaEntrega(fecha)}
+                          className={`p-3 rounded-xl border text-sm font-medium text-left transition-all capitalize ${
+                            isSelected
+                              ? "bg-orange-500/15 border-orange-500/40 text-orange-400"
+                              : "bg-black border-zinc-700 text-zinc-400 hover:border-zinc-500"
+                          }`}
+                        >
+                          <CalendarCheck className={`w-4 h-4 mb-1 ${isSelected ? "text-orange-400" : "text-zinc-600"}`} />
+                          {label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* Cantidad */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Cantidad de unidades</label>
+                  <div className="flex items-center gap-4">
+                    <button type="button" onClick={() => setPedidoCantidad(Math.max(1, pedidoCantidad - 1))}
+                      className="p-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors">
+                      <Minus className="w-4 h-4" />
+                    </button>
+                    <span className="text-3xl font-black w-16 text-center text-white">{pedidoCantidad}</span>
+                    <button type="button" onClick={() => setPedidoCantidad(pedidoCantidad + 1)}
+                      className="p-2.5 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors">
+                      <Plus className="w-4 h-4" />
+                    </button>
+                  </div>
+                  <p className="text-[10px] text-zinc-600">lasañas individuales tradicionales</p>
+                </div>
+
+                {/* Nota */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Nota adicional <span className="text-zinc-700 font-normal normal-case">(opcional)</span></label>
+                  <textarea
+                    value={pedidoNota}
+                    onChange={(e) => setPedidoNota(e.target.value)}
+                    placeholder="Ej: urgente, entregar antes del mediodía..."
+                    className="w-full bg-black border border-zinc-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-orange-500/50 min-h-[70px]"
+                  />
+                </div>
+
+                <button type="submit" disabled={pedidoSending}
+                  className="w-full bg-orange-500 hover:bg-orange-600 disabled:opacity-50 text-black font-bold py-3.5 rounded-xl transition-all flex items-center justify-center gap-2">
+                  {pedidoSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <ShoppingCart className="w-4 h-4" />}
+                  {pedidoSending ? "Enviando..." : `Solicitar ${pedidoCantidad} unidades`}
+                </button>
+              </form>
+            </div>
+          </div>
         )}
 
         {/* Mermas tab */}
