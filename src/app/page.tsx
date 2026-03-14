@@ -1,57 +1,70 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { TrendingUp, Users, Truck, AlertTriangle, FileText, ArrowRight, Clock } from "lucide-react";
+import { Suspense } from "react";
+import DashboardDateFilter from "@/components/DashboardDateFilter";
 
-async function getDashboardData(range: string = "month") {
+async function getDashboardData(range: string = "month", fromParam?: string, toParam?: string) {
   const now = new Date();
   let start: Date, end: Date, prevStart: Date, prevEnd: Date;
   let label = "";
 
-  switch (range) {
-    case "day":
-      start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      end = now;
-      prevStart = new Date(start);
-      prevStart.setDate(prevStart.getDate() - 1);
-      prevEnd = new Date(start);
-      prevEnd.setMilliseconds(-1);
-      label = "hoy";
-      break;
-    case "yesterday":
-      start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-      end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      end.setMilliseconds(-1);
-      prevStart = new Date(start);
-      prevStart.setDate(prevStart.getDate() - 1);
-      prevEnd = new Date(start);
-      prevEnd.setMilliseconds(-1);
-      label = "ayer";
-      break;
-    case "week":
-      start = new Date(now);
-      start.setDate(start.getDate() - 7);
-      end = now;
-      prevStart = new Date(start);
-      prevStart.setDate(prevStart.getDate() - 7);
-      prevEnd = new Date(start);
-      prevEnd.setMilliseconds(-1);
-      label = "esta semana";
-      break;
-    case "year":
-      start = new Date(now.getFullYear(), 0, 1);
-      end = now;
-      prevStart = new Date(now.getFullYear() - 1, 0, 1);
-      prevEnd = new Date(now.getFullYear(), 0, 0, 23, 59, 59);
-      label = "este año";
-      break;
-    case "month":
-    default:
-      start = new Date(now.getFullYear(), now.getMonth(), 1);
-      end = now;
-      prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-      prevEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-      label = "este mes";
-      break;
+  // Custom date range takes priority
+  if (fromParam && toParam) {
+    start = new Date(fromParam + "T00:00:00");
+    end   = new Date(toParam   + "T23:59:59");
+    const diff = end.getTime() - start.getTime();
+    prevEnd   = new Date(start.getTime() - 1);
+    prevStart = new Date(prevEnd.getTime() - diff);
+    const fmt = (d: Date) => d.toLocaleDateString("es-CL", { day: "2-digit", month: "short" });
+    label = `${fmt(start)} – ${fmt(end)}`;
+  } else {
+    switch (range) {
+      case "day":
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        end = now;
+        prevStart = new Date(start);
+        prevStart.setDate(prevStart.getDate() - 1);
+        prevEnd = new Date(start);
+        prevEnd.setMilliseconds(-1);
+        label = "hoy";
+        break;
+      case "yesterday":
+        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+        end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        end.setMilliseconds(-1);
+        prevStart = new Date(start);
+        prevStart.setDate(prevStart.getDate() - 1);
+        prevEnd = new Date(start);
+        prevEnd.setMilliseconds(-1);
+        label = "ayer";
+        break;
+      case "week":
+        start = new Date(now);
+        start.setDate(start.getDate() - 7);
+        end = now;
+        prevStart = new Date(start);
+        prevStart.setDate(prevStart.getDate() - 7);
+        prevEnd = new Date(start);
+        prevEnd.setMilliseconds(-1);
+        label = "últimos 7 días";
+        break;
+      case "year":
+        start = new Date(now.getFullYear(), 0, 1);
+        end = now;
+        prevStart = new Date(now.getFullYear() - 1, 0, 1);
+        prevEnd = new Date(now.getFullYear(), 0, 0, 23, 59, 59);
+        label = "este año";
+        break;
+      case "month":
+      default:
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        end = now;
+        prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        prevEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+        label = "este mes";
+        break;
+    }
   }
 
   try {
@@ -113,10 +126,12 @@ async function getDashboardData(range: string = "month") {
 
 const fmt = (n: number) => "$" + Math.round(n).toLocaleString("es-CL");
 
-export default async function DashboardPage(props: { searchParams: Promise<{ range?: string }> }) {
+export default async function DashboardPage(props: { searchParams: Promise<{ range?: string; from?: string; to?: string }> }) {
   const searchParams = await props.searchParams;
   const range = searchParams.range || "month";
-  const data = await getDashboardData(range);
+  const fromParam = searchParams.from;
+  const toParam   = searchParams.to;
+  const data = await getDashboardData(range, fromParam, toParam);
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 p-6 lg:p-8 pt-16 lg:pt-8">
@@ -136,27 +151,9 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
           </div>
 
           {/* Date Filter */}
-          <div className="flex bg-zinc-900/80 border border-zinc-800 p-1 rounded-xl">
-            {[
-              { id: "day", label: "Hoy" },
-              { id: "yesterday", label: "Ayer" },
-              { id: "week", label: "Semana" },
-              { id: "month", label: "Mes" },
-              { id: "year", label: "Año" },
-            ].map((r) => (
-              <Link
-                key={r.id}
-                href={`/?range=${r.id}`}
-                className={`px-4 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                  range === r.id
-                    ? "bg-orange-500 text-black shadow-lg shadow-orange-500/20"
-                    : "text-zinc-500 hover:text-zinc-300 hover:bg-zinc-800"
-                }`}
-              >
-                {r.label}
-              </Link>
-            ))}
-          </div>
+          <Suspense fallback={<div className="h-9 w-64 bg-zinc-900/80 border border-zinc-800 rounded-xl animate-pulse" />}>
+            <DashboardDateFilter />
+          </Suspense>
         </div>
 
         {/* KPI Cards */}
