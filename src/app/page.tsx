@@ -3,6 +3,8 @@ import Link from "next/link";
 import { TrendingUp, Users, Truck, AlertTriangle, FileText, ArrowRight, Clock } from "lucide-react";
 import { Suspense } from "react";
 import DashboardDateFilter from "@/components/DashboardDateFilter";
+import DashboardChart from "@/components/DashboardChart";
+import ClientRanking from "@/components/ClientRanking";
 
 async function getDashboardData(range: string = "month", fromParam?: string, toParam?: string) {
   const now = new Date();
@@ -72,6 +74,7 @@ async function getDashboardData(range: string = "month", fromParam?: string, toP
       enviosActual,
       enviosAnterior,
       mermasActual,
+      mermasPorCliente,
       clientesTotal,
       recentEnvios,
       guiasPendientes,
@@ -85,6 +88,11 @@ async function getDashboardData(range: string = "month", fromParam?: string, toP
         include: { detalles: { include: { producto: true } } },
       }),
       prisma.merma.count({ where: { fecha: { gte: start, lte: end } } }),
+      prisma.merma.groupBy({
+        by: ["clienteId"],
+        where: { fecha: { gte: start, lte: end } },
+        _count: { id: true },
+      }),
       prisma.cliente.count(),
       (prisma.envio as any).findMany({
         orderBy: { fecha: "desc" },
@@ -107,6 +115,33 @@ async function getDashboardData(range: string = "month", fromParam?: string, toP
 
     const clientesActivos = new Set(enviosActual.map((e: any) => e.clienteId)).size;
 
+    // Chart data: group by day
+    const dayMap: Record<string, { count: number; revenue: number }> = {};
+    for (const envio of enviosActual) {
+      const day = new Date(envio.fecha).toISOString().split("T")[0];
+      if (!dayMap[day]) dayMap[day] = { count: 0, revenue: 0 };
+      dayMap[day].count++;
+      dayMap[day].revenue += envio.detalles.reduce((s: number, d: any) =>
+        s + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0);
+    }
+    const chartData = Object.entries(dayMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, v]) => ({ date, ...v }));
+
+    // Ranking: group by client
+    const mermaMap: Record<string, number> = {};
+    for (const m of mermasPorCliente) mermaMap[m.clienteId] = m._count.id;
+
+    const clientMap: Record<string, { id: string; razonSocial: string; revenue: number; despachos: number; mermas: number }> = {};
+    for (const envio of enviosActual) {
+      const id = envio.clienteId;
+      if (!clientMap[id]) clientMap[id] = { id, razonSocial: envio.cliente.razonSocial, revenue: 0, despachos: 0, mermas: mermaMap[id] ?? 0 };
+      clientMap[id].despachos++;
+      clientMap[id].revenue += envio.detalles.reduce((s: number, d: any) =>
+        s + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0);
+    }
+    const rankingData = Object.values(clientMap);
+
     return {
       revenue: Math.round(revenueActual),
       revenueChange,
@@ -116,6 +151,8 @@ async function getDashboardData(range: string = "month", fromParam?: string, toP
       mermas: mermasActual,
       recentEnvios,
       guiasPendientes,
+      chartData,
+      rankingData,
       label,
     };
   } catch (e) {
@@ -212,10 +249,57 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
           </div>
         </div>
 
-        {/* Content grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Chart + sidebar */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+          <div className="lg:col-span-2">
+            <DashboardChart data={data?.chartData ?? []} />
+          </div>
+
+          {/* Quick actions + alerts */}
+          <div className="space-y-4">
+            {data && data.guiasPendientes > 0 && (
+              <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4">
+                <div className="flex items-center gap-2 mb-1">
+                  <FileText className="w-4 h-4 text-amber-400" />
+                  <span className="text-sm font-bold text-amber-400">Guías pendientes</span>
+                </div>
+                <p className="text-xs text-zinc-400 mb-3">
+                  {data.guiasPendientes} despacho{data.guiasPendientes > 1 ? "s" : ""} sin guía generada.
+                </p>
+                <Link href="/guias" className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1">
+                  Ir a Guías <ArrowRight className="w-3 h-3" />
+                </Link>
+              </div>
+            )}
+            <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
+              <p className="px-5 py-3 text-xs font-bold uppercase tracking-widest text-zinc-600 border-b border-zinc-800">
+                Acciones rápidas
+              </p>
+              {[
+                { label: "Nuevo despacho",  href: "/envios/nuevo",    color: "text-orange-400" },
+                { label: "Cargar planilla", href: "/cargar-planilla", color: "text-blue-400" },
+                { label: "Registrar merma", href: "/mermas",          color: "text-red-400" },
+                { label: "Ver clientes",    href: "/clientes",        color: "text-emerald-400" },
+              ].map((item) => (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="flex items-center justify-between px-5 py-3 hover:bg-zinc-800/30 transition-colors border-b border-zinc-800/50 last:border-0"
+                >
+                  <span className={`text-sm font-medium ${item.color}`}>{item.label}</span>
+                  <ArrowRight className="w-3.5 h-3.5 text-zinc-600" />
+                </Link>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Ranking + Recent dispatches */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <ClientRanking clients={data?.rankingData ?? []} />
+
           {/* Recent dispatches */}
-          <div className="lg:col-span-2 bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
             <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
               <h2 className="font-semibold text-sm text-white flex items-center gap-2">
                 <Clock className="w-4 h-4 text-zinc-500" />
@@ -249,47 +333,6 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
                   </div>
                 );
               })}
-            </div>
-          </div>
-
-          {/* Quick actions */}
-          <div className="space-y-4">
-            {/* Guías pendientes alert */}
-            {data && data.guiasPendientes > 0 && (
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <FileText className="w-4 h-4 text-amber-400" />
-                  <span className="text-sm font-bold text-amber-400">Guías pendientes</span>
-                </div>
-                <p className="text-xs text-zinc-400 mb-3">
-                  {data.guiasPendientes} despacho{data.guiasPendientes > 1 ? "s" : ""} sin guía de despacho generada.
-                </p>
-                <Link href="/guias" className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1">
-                  Ir a Guías <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-            )}
-
-            {/* Quick links */}
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
-              <p className="px-5 py-3 text-xs font-bold uppercase tracking-widest text-zinc-600 border-b border-zinc-800">
-                Acciones rápidas
-              </p>
-              {[
-                { label: "Nuevo despacho",   href: "/envios/nuevo",    color: "text-orange-400" },
-                { label: "Cargar planilla",  href: "/cargar-planilla", color: "text-blue-400" },
-                { label: "Registrar merma",  href: "/mermas",          color: "text-red-400" },
-                { label: "Ver clientes",     href: "/clientes",        color: "text-emerald-400" },
-              ].map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="flex items-center justify-between px-5 py-3 hover:bg-zinc-800/30 transition-colors border-b border-zinc-800/50 last:border-0"
-                >
-                  <span className={`text-sm font-medium ${item.color}`}>{item.label}</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-zinc-600" />
-                </Link>
-              ))}
             </div>
           </div>
         </div>

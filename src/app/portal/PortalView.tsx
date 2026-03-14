@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useRef } from "react";
 import { signOut } from "next-auth/react";
-import { LogOut, Package, ChevronDown, Eye, Search, X, CheckCircle, Upload, Loader2, ExternalLink } from "lucide-react";
+import { LogOut, Package, ChevronDown, Eye, Search, X, CheckCircle, Upload, Loader2, ExternalLink, CreditCard, Clock, TrendingUp, AlertCircle } from "lucide-react";
 import Image from "next/image";
 import { marcarPagado } from "@/actions/portal";
 
@@ -87,6 +87,28 @@ export default function PortalView({ envios, razonSocial }: { envios: Envio[]; r
 
   const fmt = (n: number) =>
     n.toLocaleString("es-CL", { style: "currency", currency: "CLP", maximumFractionDigits: 0 });
+
+  // Cuenta corriente: totales históricos sobre TODOS los envíos
+  const cuentaCorriente = useMemo(() => {
+    let totalHistorico = 0, totalPagado = 0, totalPendiente = 0;
+    let countPendiente = 0;
+    let ultimaFecha: string | null = null;
+
+    for (const e of envios) {
+      const neto = e.detalles.reduce((s, d) => s + d.cantidad * d.producto.precioBase, 0);
+      const total = neto * (1 + (e.detalles[0]?.producto.tasaIva ?? 0.19));
+      totalHistorico += total;
+      const pagado = e.pagado || !!pagosLocales[e.id];
+      if (pagado) {
+        totalPagado += total;
+      } else {
+        totalPendiente += total;
+        countPendiente++;
+      }
+      if (!ultimaFecha || e.fecha > ultimaFecha) ultimaFecha = e.fecha;
+    }
+    return { totalHistorico, totalPagado, totalPendiente, countPendiente, ultimaFecha };
+  }, [envios, pagosLocales]);
 
   const isPagado = (envio: Envio) => envio.pagado || !!pagosLocales[envio.id];
 
@@ -220,6 +242,56 @@ export default function PortalView({ envios, razonSocial }: { envios: Envio[]; r
       </header>
 
       <div className="max-w-5xl mx-auto px-4 sm:px-6 py-6 space-y-6">
+
+        {/* Cuenta corriente */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="col-span-2 sm:col-span-1 bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp className="w-3.5 h-3.5 text-orange-500" />
+              <p className="text-xs text-zinc-500 uppercase tracking-wider">Total histórico</p>
+            </div>
+            <p className="text-xl font-black text-orange-400">{fmt(cuentaCorriente.totalHistorico)}</p>
+            <p className="text-[10px] text-zinc-600 mt-0.5">{envios.length} guías en total</p>
+          </div>
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-500" />
+              <p className="text-xs text-zinc-500 uppercase tracking-wider">Pagado</p>
+            </div>
+            <p className="text-xl font-black text-emerald-400">{fmt(cuentaCorriente.totalPagado)}</p>
+            <p className="text-[10px] text-zinc-600 mt-0.5">
+              {envios.length - cuentaCorriente.countPendiente} guías
+            </p>
+          </div>
+          <div className={`rounded-2xl p-4 border ${
+            cuentaCorriente.countPendiente > 0
+              ? "bg-red-500/10 border-red-500/30"
+              : "bg-zinc-900/50 border-zinc-800"
+          }`}>
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className={`w-3.5 h-3.5 ${cuentaCorriente.countPendiente > 0 ? "text-red-400" : "text-zinc-500"}`} />
+              <p className="text-xs text-zinc-500 uppercase tracking-wider">Pendiente</p>
+            </div>
+            <p className={`text-xl font-black ${cuentaCorriente.countPendiente > 0 ? "text-red-400" : "text-zinc-400"}`}>
+              {fmt(cuentaCorriente.totalPendiente)}
+            </p>
+            <p className="text-[10px] text-zinc-600 mt-0.5">
+              {cuentaCorriente.countPendiente} guía{cuentaCorriente.countPendiente !== 1 ? "s" : ""} por pagar
+            </p>
+          </div>
+          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="w-3.5 h-3.5 text-blue-400" />
+              <p className="text-xs text-zinc-500 uppercase tracking-wider">Último pedido</p>
+            </div>
+            <p className="text-sm font-bold text-white">
+              {cuentaCorriente.ultimaFecha
+                ? new Date(cuentaCorriente.ultimaFecha).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" })
+                : "—"}
+            </p>
+            <p className="text-[10px] text-zinc-600 mt-0.5">fecha de despacho</p>
+          </div>
+        </div>
 
         {/* Filtros */}
         <div className="flex flex-wrap items-end gap-4">
