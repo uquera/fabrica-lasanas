@@ -117,21 +117,26 @@ export default function SubUserView({
 }) {
   const [tab, setTab] = useState<"pedidos" | "mermas" | "pedido">("pedidos");
 
-  // ─── Próximos martes y viernes ───────────────────────────────────────────
-  function proximoDia(dia: number): Date { // 2=martes, 5=viernes
-    const hoy = new Date();
-    let diff = dia - hoy.getDay();
-    if (diff < 0) diff += 7;
-    const d = new Date(hoy);
-    d.setDate(hoy.getDate() + diff);
-    d.setHours(0, 0, 0, 0);
+  // ─── Fechas de despacho disponibles (martes y viernes) ──────────────────
+  const hoyBase = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
+  const diaSemanaHoy = hoyBase.getDay();
+  const esDespachoHoy = diaSemanaHoy === 2 || diaSemanaHoy === 5; // martes=2, viernes=5
+
+  function proximoDiaSiguiente(dia: number): Date { // siempre el próximo, nunca hoy
+    const diff = ((dia - diaSemanaHoy + 7) % 7) || 7;
+    const d = new Date(hoyBase);
+    d.setDate(hoyBase.getDate() + diff);
     return d;
   }
-  const proximoMartes  = proximoDia(2);
-  const proximoViernes = proximoDia(5);
+  const proximoMartes  = proximoDiaSiguiente(2);
+  const proximoViernes = proximoDiaSiguiente(5);
 
-  const fechaInicial = proximoMartes.getTime() <= proximoViernes.getTime() ? proximoMartes : proximoViernes;
-  const [fechaEntrega, setFechaEntrega] = useState<Date>(fechaInicial);
+  const fechasDisponibles: Date[] = [
+    ...(esDespachoHoy ? [hoyBase] : []),
+    ...[proximoMartes, proximoViernes].sort((a, b) => a.getTime() - b.getTime()),
+  ];
+
+  const [fechaEntrega, setFechaEntrega] = useState<Date>(fechasDisponibles[0]);
   const [pedidoCantidad, setPedidoCantidad] = useState(10);
   const [pedidoNota, setPedidoNota] = useState("");
   const [pedidoSending, setPedidoSending] = useState(false);
@@ -493,7 +498,7 @@ export default function SubUserView({
                 </div>
                 <div>
                   <h2 className="font-bold">Solicitar Pedido</h2>
-                  <p className="text-xs text-zinc-500">Se agendará para el martes o viernes más próximo</p>
+                  <p className="text-xs text-zinc-500">Despachos los martes y viernes</p>
                 </div>
               </div>
 
@@ -525,8 +530,9 @@ export default function SubUserView({
                 {/* Fecha de entrega */}
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Fecha de entrega</label>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[proximoMartes, proximoViernes].map((fecha) => {
+                  <div className={`grid gap-2 ${fechasDisponibles.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
+                    {fechasDisponibles.map((fecha) => {
+                      const esHoy = fecha.toDateString() === hoyBase.toDateString();
                       const label = fecha.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "short" });
                       const isSelected = fechaEntrega.toDateString() === fecha.toDateString();
                       return (
@@ -542,6 +548,11 @@ export default function SubUserView({
                         >
                           <CalendarCheck className={`w-4 h-4 mb-1 ${isSelected ? "text-orange-400" : "text-zinc-600"}`} />
                           {label}
+                          {esHoy && (
+                            <span className="block text-[10px] font-bold uppercase tracking-wider mt-0.5 text-emerald-400">
+                              Hoy
+                            </span>
+                          )}
                         </button>
                       );
                     })}
