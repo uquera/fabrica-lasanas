@@ -115,7 +115,7 @@ export default function SubUserView({
 }: {
   envios: Envio[]; mermas: Merma[]; productos: Producto[]; clienteId: string; tienda: string; brand?: string;
 }) {
-  const [tab, setTab] = useState<"pedidos" | "mermas" | "pedido">("pedidos");
+  const [tab, setTab] = useState<"pedidos" | "solicitar">("pedidos");
 
   // ─── Fechas de despacho disponibles (martes y viernes) ──────────────────
   // Calculadas en useEffect para evitar hydration mismatch (server UTC vs cliente Chile)
@@ -366,9 +366,8 @@ export default function SubUserView({
         {/* Tabs */}
         <div className="flex bg-zinc-900 rounded-2xl p-1 gap-1 w-fit flex-wrap">
           {([
-            { id: "pedidos", label: "Mis Pedidos" },
-            { id: "pedido",  label: "Hacer Pedido" },
-            { id: "mermas",  label: "Reportar Merma" },
+            { id: "pedidos",   label: "Mis Pedidos" },
+            { id: "solicitar", label: "Pedir & Merma" },
           ] as const).map((t) => (
             <button key={t.id} onClick={() => setTab(t.id)}
               className={`px-5 py-2 rounded-xl text-sm font-bold transition-all ${
@@ -496,9 +495,11 @@ export default function SubUserView({
           </>
         )}
 
-        {/* Hacer Pedido tab */}
-        {tab === "pedido" && (
-          <div className="max-w-md">
+        {/* Tab: Pedir & Merma (combinado) */}
+        {tab === "solicitar" && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+            {/* ── COLUMNA IZQUIERDA: Solicitar Pedido ── */}
             <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
               <div className="flex items-center gap-3 mb-5">
                 <div className="p-2 bg-orange-500/10 rounded-xl">
@@ -586,7 +587,9 @@ export default function SubUserView({
 
                 {/* Nota */}
                 <div className="space-y-2">
-                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Nota adicional <span className="text-zinc-700 font-normal normal-case">(opcional)</span></label>
+                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">
+                    Nota adicional <span className="text-zinc-700 font-normal normal-case">(opcional)</span>
+                  </label>
                   <textarea
                     value={pedidoNota}
                     onChange={(e) => setPedidoNota(e.target.value)}
@@ -602,124 +605,122 @@ export default function SubUserView({
                 </button>
               </form>
             </div>
-          </div>
-        )}
 
-        {/* Mermas tab */}
-        {tab === "mermas" && (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {/* Form */}
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
-              <div className="flex items-center gap-3 mb-5">
-                <div className="p-2 bg-red-500/10 rounded-xl">
-                  <ShieldAlert className="w-4 h-4 text-red-400" />
-                </div>
-                <h2 className="font-bold">Reportar Merma</h2>
-              </div>
-
-              {/* Responsable para merma */}
-              {!responsable && (
-                <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2">
-                  <p className="text-xs text-amber-400 font-bold">Identifícate antes de reportar</p>
-                  <div className="relative">
-                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 pointer-events-none" />
-                    <input
-                      type="text"
-                      placeholder="Tu nombre..."
-                      className="w-full bg-black border border-zinc-700 rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-amber-500/50"
-                      onChange={(e) => saveResponsable(e.target.value)}
-                    />
+            {/* ── COLUMNA DERECHA: Reportar Merma + Historial ── */}
+            <div className="space-y-4">
+              {/* Form merma */}
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl p-6">
+                <div className="flex items-center gap-3 mb-5">
+                  <div className="p-2 bg-red-500/10 rounded-xl">
+                    <ShieldAlert className="w-4 h-4 text-red-400" />
                   </div>
-                </div>
-              )}
-              {responsable && (
-                <div className="mb-4 flex items-center gap-2 text-xs text-zinc-500">
-                  <User className="w-3.5 h-3.5 text-zinc-600" />
-                  Registrando como <span className="text-white font-bold">{responsable}</span>
-                  <button type="button" onClick={() => saveResponsable("")} className="text-zinc-700 hover:text-zinc-400 ml-1">cambiar</button>
-                </div>
-              )}
-
-              {mermaOk && (
-                <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm flex items-center gap-2">
-                  <CheckCircle className="w-4 h-4 shrink-0" /> Merma registrada correctamente.
-                </div>
-              )}
-
-              <form ref={mermaFormRef} onSubmit={handleMerma} className="space-y-4">
-                <input type="hidden" name="clienteId" value={clienteId} />
-                <input type="hidden" name="responsable" value={responsable} />
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Producto</label>
-                  <select name="productoId" required
-                    className="w-full bg-black border border-zinc-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-red-500/50">
-                    <option value="">Selecciona...</option>
-                    {productos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
-                  </select>
+                  <h2 className="font-bold">Reportar Merma</h2>
                 </div>
 
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Cantidad</label>
-                  <div className="flex items-center gap-3">
-                    <button type="button" onClick={() => setMermaQty(Math.max(1, mermaQty - 1))}
-                      className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors">
-                      <Minus className="w-4 h-4" />
-                    </button>
-                    <span className="text-2xl font-black w-12 text-center">{mermaQty}</span>
-                    <button type="button" onClick={() => setMermaQty(mermaQty + 1)}
-                      className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors">
-                      <Plus className="w-4 h-4" />
-                    </button>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Fecha</label>
-                  <input name="fecha" type="date" defaultValue={new Date().toISOString().split("T")[0]}
-                    className="w-full bg-black border border-zinc-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-red-500/50 [color-scheme:dark]" />
-                </div>
-
-                <div className="space-y-1.5">
-                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Motivo</label>
-                  <textarea name="motivo" placeholder="Ej: producto vencido, empaque dañado..."
-                    className="w-full bg-black border border-zinc-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-red-500/50 min-h-[70px]" />
-                </div>
-
-                <button type="submit" disabled={mermaSending}
-                  className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
-                  {mermaSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertTriangle className="w-4 h-4" />}
-                  {mermaSending ? "Registrando..." : "Confirmar Merma"}
-                </button>
-              </form>
-            </div>
-
-            {/* Historial mermas */}
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
-              <div className="px-5 py-4 border-b border-zinc-800">
-                <h2 className="font-bold text-sm flex items-center gap-2">
-                  <Clock className="w-4 h-4 text-zinc-500" /> Historial reciente
-                </h2>
-              </div>
-              {mermas.length === 0 ? (
-                <p className="text-zinc-600 text-sm text-center py-10">Sin mermas registradas.</p>
-              ) : (
-                <div className="divide-y divide-zinc-800/50">
-                  {mermas.slice(0, 10).map((m) => (
-                    <div key={m.id} className="px-5 py-3 flex items-start gap-3">
-                      <div className="p-1.5 bg-red-500/10 rounded-lg mt-0.5 shrink-0">
-                        <AlertTriangle className="w-3 h-3 text-red-400" />
-                      </div>
-                      <div className="min-w-0">
-                        <p className="text-sm font-medium text-white">{m.producto.nombre}</p>
-                        <p className="text-xs text-zinc-500">{fmtDate(m.fecha)} · <span className="text-red-400 font-bold">-{m.cantidad} unid.</span></p>
-                        {m.motivo && <p className="text-[10px] text-zinc-600 italic mt-0.5 truncate">"{m.motivo}"</p>}
-                      </div>
+                {!responsable && (
+                  <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2">
+                    <p className="text-xs text-amber-400 font-bold">Identifícate antes de reportar</p>
+                    <div className="relative">
+                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 pointer-events-none" />
+                      <input
+                        type="text"
+                        placeholder="Tu nombre..."
+                        className="w-full bg-black border border-zinc-700 rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-amber-500/50"
+                        onChange={(e) => saveResponsable(e.target.value)}
+                      />
                     </div>
-                  ))}
+                  </div>
+                )}
+                {responsable && (
+                  <div className="mb-4 flex items-center gap-2 text-xs text-zinc-500">
+                    <User className="w-3.5 h-3.5 text-zinc-600" />
+                    Registrando como <span className="text-white font-bold">{responsable}</span>
+                    <button type="button" onClick={() => saveResponsable("")} className="text-zinc-700 hover:text-zinc-400 ml-1">cambiar</button>
+                  </div>
+                )}
+
+                {mermaOk && (
+                  <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm flex items-center gap-2">
+                    <CheckCircle className="w-4 h-4 shrink-0" /> Merma registrada correctamente.
+                  </div>
+                )}
+
+                <form ref={mermaFormRef} onSubmit={handleMerma} className="space-y-4">
+                  <input type="hidden" name="clienteId" value={clienteId} />
+                  <input type="hidden" name="responsable" value={responsable} />
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Producto</label>
+                    <select name="productoId" required
+                      className="w-full bg-black border border-zinc-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-red-500/50">
+                      <option value="">Selecciona...</option>
+                      {productos.map((p) => <option key={p.id} value={p.id}>{p.nombre}</option>)}
+                    </select>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Cantidad</label>
+                    <div className="flex items-center gap-3">
+                      <button type="button" onClick={() => setMermaQty(Math.max(1, mermaQty - 1))}
+                        className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors">
+                        <Minus className="w-4 h-4" />
+                      </button>
+                      <span className="text-2xl font-black w-12 text-center">{mermaQty}</span>
+                      <button type="button" onClick={() => setMermaQty(mermaQty + 1)}
+                        className="p-2 bg-zinc-800 hover:bg-zinc-700 rounded-xl transition-colors">
+                        <Plus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Fecha</label>
+                    <input name="fecha" type="date" defaultValue={new Date().toISOString().split("T")[0]}
+                      className="w-full bg-black border border-zinc-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-red-500/50 [color-scheme:dark]" />
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Motivo</label>
+                    <textarea name="motivo" placeholder="Ej: producto vencido, empaque dañado..."
+                      className="w-full bg-black border border-zinc-700 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-red-500/50 min-h-[70px]" />
+                  </div>
+
+                  <button type="submit" disabled={mermaSending}
+                    className="w-full bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white font-bold py-3 rounded-xl transition-all flex items-center justify-center gap-2">
+                    {mermaSending ? <Loader2 className="w-4 h-4 animate-spin" /> : <AlertTriangle className="w-4 h-4" />}
+                    {mermaSending ? "Registrando..." : "Confirmar Merma"}
+                  </button>
+                </form>
+              </div>
+
+              {/* Historial mermas */}
+              <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-zinc-800">
+                  <h2 className="font-bold text-sm flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-zinc-500" /> Historial de mermas
+                  </h2>
                 </div>
-              )}
+                {mermas.length === 0 ? (
+                  <p className="text-zinc-600 text-sm text-center py-8">Sin mermas registradas.</p>
+                ) : (
+                  <div className="divide-y divide-zinc-800/50">
+                    {mermas.slice(0, 8).map((m) => (
+                      <div key={m.id} className="px-5 py-3 flex items-start gap-3">
+                        <div className="p-1.5 bg-red-500/10 rounded-lg mt-0.5 shrink-0">
+                          <AlertTriangle className="w-3 h-3 text-red-400" />
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-white">{m.producto.nombre}</p>
+                          <p className="text-xs text-zinc-500">{fmtDate(m.fecha)} · <span className="text-red-400 font-bold">-{m.cantidad} unid.</span></p>
+                          {m.motivo && <p className="text-[10px] text-zinc-600 italic mt-0.5 truncate">"{m.motivo}"</p>}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
+
           </div>
         )}
 

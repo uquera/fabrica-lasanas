@@ -1,20 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { Check, X, Loader2 } from "lucide-react";
+import { Check, X, Loader2, Send } from "lucide-react";
 import { confirmarSolicitud, descartarSolicitud } from "@/actions/solicitudes";
 
 export default function SolicitudActions({ id }: { id: string }) {
   const [loading, setLoading] = useState<"confirmar" | "descartar" | null>(null);
-  const [done, setDone] = useState(false);
+  const [result, setResult] = useState<"confirmado" | "descartado" | null>(null);
 
-  if (done) return null;
+  if (result === "descartado") return null;
+  if (result === "confirmado") {
+    return (
+      <div className="flex items-center gap-1.5 pt-1 text-xs text-emerald-400 font-bold">
+        <Send className="w-3 h-3" /> Despacho generado — guía en camino
+      </div>
+    );
+  }
 
   async function handle(action: "confirmar" | "descartar") {
     setLoading(action);
     if (action === "confirmar") await confirmarSolicitud(id);
     else await descartarSolicitud(id);
-    setDone(true);
+    setResult(action === "confirmar" ? "confirmado" : "descartado");
+    setLoading(null);
   }
 
   return (
@@ -25,7 +33,7 @@ export default function SolicitudActions({ id }: { id: string }) {
         className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-lg bg-emerald-600/20 hover:bg-emerald-600/40 text-emerald-400 text-xs font-bold transition-colors disabled:opacity-50"
       >
         {loading === "confirmar" ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
-        Confirmar
+        {loading === "confirmar" ? "Generando..." : "Confirmar"}
       </button>
       <button
         onClick={() => handle("descartar")}
