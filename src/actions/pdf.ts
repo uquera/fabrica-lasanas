@@ -42,7 +42,7 @@ async function asignarFolio(envioId: string): Promise<number> {
   const nextFolio = ((last?.folio as number) ?? 0) + 1;
 
   // Use $executeRaw to bypass Prisma runtime validation for new field
-  await prisma.$executeRaw`UPDATE Envio SET folio = ${nextFolio} WHERE id = ${envioId}`;
+  await prisma.$executeRaw`UPDATE "Envio" SET folio = ${nextFolio} WHERE id = ${envioId}`;
   return nextFolio;
 }
 
