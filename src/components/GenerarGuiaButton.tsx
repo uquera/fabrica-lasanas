@@ -1,18 +1,21 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Loader2, Send, CheckCircle, AlertCircle } from "lucide-react";
 import { enviarGuia } from "@/actions/envios";
 
 export default function GenerarGuiaButton({ envioId }: { envioId: string }) {
   const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
   const [error, setError] = useState<string | null>(null);
+  const router = useRouter();
 
   async function handle() {
     setStatus("loading");
     const result = await enviarGuia(envioId) as any;
     if (result.success) {
       setStatus("ok");
+      router.refresh();
     } else {
       setStatus("error");
       setError(result.error ?? "Error desconocido");
