@@ -105,11 +105,18 @@ info "Construyendo la aplicación (puede tardar 2-3 min)..."
 npm run build
 ok "Build completado"
 
+# ── 10b. Copiar archivos estáticos al directorio standalone ───
+# Requerido por Next.js output:'standalone' para servir CSS/JS correctamente
+info "Copiando archivos estáticos a standalone..."
+cp -r "$APP_DIR/.next/static" "$APP_DIR/.next/standalone/.next/static"
+cp -r "$APP_DIR/public" "$APP_DIR/.next/standalone/public" 2>/dev/null || true
+ok "Archivos estáticos copiados"
+
 # ── 11. PM2 ───────────────────────────────────────────────────
 info "Iniciando/reiniciando con PM2..."
 pm2 stop fabrica-lasanas 2>/dev/null || true
 pm2 delete fabrica-lasanas 2>/dev/null || true
-pm2 start npm --name fabrica-lasanas -- start
+pm2 start ecosystem.config.js
 pm2 save
 
 # Configurar PM2 para arrancar al reiniciar el servidor
