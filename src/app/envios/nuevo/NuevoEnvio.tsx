@@ -165,22 +165,38 @@ export default function NuevoEnvio({ clientes, productos }: { clientes: any[]; p
     const pendientes = bulkResults.filter((r) => r.envioId && r.emailStatus === "idle");
     if (!pendientes.length) return;
     setSendingAll(true);
-    setBulkResults((prev) => prev.map((r) => r.envioId && r.emailStatus === "idle" ? { ...r, emailStatus: "sending" } : r));
 
-    const envioIds = pendientes.map((r) => r.envioId!);
-    const results  = await generarYEnviarGuias(envioIds);
+    for (const pendiente of pendientes) {
+      // Marcar como enviando
+      setBulkResults((prev) =>
+        prev.map((r) => r.clienteId === pendiente.clienteId ? { ...r, emailStatus: "sending" } : r),
+      );
 
-    setBulkResults((prev) =>
-      prev.map((r) => {
-        const match = results.find((res) => res.tienda === r.razonSocial);
-        if (!match) return r;
-        return {
-          ...r,
-          emailStatus: match.status === "sent" ? "sent" : match.status === "no_email" ? "no_email" : "error",
-          emailError: match.error ?? null,
-        };
-      }),
-    );
+      try {
+        const results = await generarYEnviarGuias([pendiente.envioId!]);
+        const match = results[0];
+        setBulkResults((prev) =>
+          prev.map((r) =>
+            r.clienteId === pendiente.clienteId
+              ? {
+                  ...r,
+                  emailStatus: match?.status === "sent" ? "sent" : match?.status === "no_email" ? "no_email" : "error",
+                  emailError: match?.error ?? null,
+                }
+              : r,
+          ),
+        );
+      } catch (err: any) {
+        setBulkResults((prev) =>
+          prev.map((r) =>
+            r.clienteId === pendiente.clienteId
+              ? { ...r, emailStatus: "error", emailError: err.message ?? "Error inesperado" }
+              : r,
+          ),
+        );
+      }
+    }
+
     setSendingAll(false);
   }
 
