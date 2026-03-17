@@ -1,12 +1,105 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
-import { TrendingUp, Users, Truck, AlertTriangle, FileText, ArrowRight, Clock, ShoppingCart, Check, X } from "lucide-react";
+import { TrendingUp, Users, Truck, AlertTriangle, FileText, ArrowRight, Clock, ShoppingCart } from "lucide-react";
 import { Suspense } from "react";
 import DashboardDateFilter from "@/components/DashboardDateFilter";
 import DashboardChart from "@/components/DashboardChart";
 import ClientRanking from "@/components/ClientRanking";
 import { getSolicitudesPendientes } from "@/actions/solicitudes";
 import SolicitudActions from "@/components/SolicitudActions";
+
+// ── TM Store IDs ──────────────────────────────────────────────────────────
+const TM_STORES = [
+  { tienda: "Vivar",       clienteId: "cmmnmfpkv0001r4kyrfgs13z9" },
+  { tienda: "Terranova",   clienteId: "cmmnmh1mf0002r4kysf9yc5xo" },
+  { tienda: "Chipana",     clienteId: "cmmnmjxy60003r4kymk3ikkub" },
+  { tienda: "Playa Brava", clienteId: "cmmnm03e800007qkymmpexyb1" },
+  { tienda: "Anibal Pinto",clienteId: "cmmnmoo4m0005r4ky04fyw48a" },
+  { tienda: "Tarapaca",    clienteId: "cmmnmqbom0006r4kyudp2r4qa" },
+  { tienda: "Los Molles",  clienteId: "cmmnmrlqz0007r4kyudp2r4qa" },
+  { tienda: "Bilbao 2",    clienteId: "cmmnmlph80004r4kyvhrm0777" },
+  { tienda: "Peninsula",   clienteId: "cmmnmdjfr0000r4kyba7mwu1j" },
+];
+
+async function getTMData() {
+  const now = new Date();
+  const start = new Date(now.getFullYear(), now.getMonth(), 1);
+  const allClienteIds = TM_STORES.map((s) => s.clienteId);
+  const [envios, mermas] = await Promise.all([
+    (prisma.envio as any).findMany({
+      where: { clienteId: { in: allClienteIds }, fecha: { gte: start } },
+      include: { detalles: { include: { producto: true } } },
+    }),
+    prisma.merma.groupBy({
+      by: ["clienteId"],
+      where: { clienteId: { in: allClienteIds }, fecha: { gte: start } },
+      _sum: { cantidad: true },
+    }),
+  ]);
+  const mermaMap: Record<string, number> = {};
+  for (const m of mermas) mermaMap[m.clienteId] = (m._sum as any).cantidad ?? 0;
+  return TM_STORES.map(({ tienda, clienteId }) => {
+    const storeEnvios = envios.filter((e: any) => e.clienteId === clienteId);
+    const unidades = storeEnvios.reduce((s: number, e: any) =>
+      s + e.detalles.reduce((ss: number, d: any) => ss + d.cantidad, 0), 0);
+    const pendiente = storeEnvios
+      .filter((e: any) => !e.pagado)
+      .reduce((s: number, e: any) =>
+        s + e.detalles.reduce((ss: number, d: any) =>
+          ss + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0), 0);
+    return { tienda, unidades, pendiente, mermas: mermaMap[clienteId] ?? 0, despachos: storeEnvios.length };
+  });
+}
+
+// ── Sparkline SVG ──────────────────────────────────────────────────────────
+function Sparkline({ data, color = "#f97316" }: { data: number[]; color?: string }) {
+  if (data.length < 2) return null;
+  const max = Math.max(...data, 1);
+  const W = 72, H = 24;
+  const pts = data
+    .map((v, i) => {
+      const x = (i / (data.length - 1)) * W;
+      const y = H - (v / max) * (H - 2) - 1;
+      return `${x.toFixed(1)},${y.toFixed(1)}`;
+    })
+    .join(" ");
+  return (
+    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 opacity-70">
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
+}
+
+// ── Sparkline data (últimos 7 días, independiente del filtro) ──────────────
+async function getSparklineData() {
+  const now = new Date();
+  const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0);
+  const [sparkEnvios, sparkMermas] = await Promise.all([
+    (prisma.envio as any).findMany({
+      where: { fecha: { gte: sevenDaysAgo } },
+      include: { detalles: { include: { producto: true } } },
+    }),
+    prisma.merma.findMany({
+      where: { fecha: { gte: sevenDaysAgo } },
+      select: { fecha: true, cantidad: true },
+    }),
+  ]);
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i));
+    const ds = d.toISOString().split("T")[0];
+    const dayEnvios = sparkEnvios.filter((e: any) => new Date(e.fecha).toISOString().split("T")[0] === ds);
+    const dayMermas = sparkMermas.filter((m: any) => new Date(m.fecha).toISOString().split("T")[0] === ds);
+    const revenue = dayEnvios.reduce((s: number, e: any) =>
+      s + e.detalles.reduce((ss: number, d: any) =>
+        ss + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0), 0);
+    return {
+      revenue,
+      dispatches: dayEnvios.length,
+      clients: new Set(dayEnvios.map((e: any) => e.clienteId)).size,
+      mermas: dayMermas.reduce((s: number, m: any) => s + m.cantidad, 0),
+    };
+  });
+}
 
 async function getDashboardData(range: string = "month", fromParam?: string, toParam?: string) {
   const now = new Date();
@@ -170,10 +263,19 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
   const range = searchParams.range || "month";
   const fromParam = searchParams.from;
   const toParam   = searchParams.to;
-  const [data, solicitudes] = await Promise.all([
+  const [data, solicitudes, sparkDays, tmData] = await Promise.all([
     getDashboardData(range, fromParam, toParam),
     getSolicitudesPendientes(),
+    getSparklineData(),
+    getTMData(),
   ]);
+  type SparkDay = { revenue: number; dispatches: number; clients: number; mermas: number };
+  const spark = {
+    revenue:    (sparkDays as SparkDay[]).map((d) => d.revenue),
+    dispatches: (sparkDays as SparkDay[]).map((d) => d.dispatches),
+    clients:    (sparkDays as SparkDay[]).map((d) => d.clients),
+    mermas:     (sparkDays as SparkDay[]).map((d) => d.mermas),
+  };
 
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 p-6 lg:p-8 pt-16 lg:pt-8">
@@ -201,6 +303,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
         {/* KPI Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {/* Revenue */}
+          {/* Revenue */}
           <div className="col-span-2 lg:col-span-1 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-5 hover:border-orange-500/30 transition-all">
             <div className="flex items-center justify-between mb-3">
               <div className="p-2 bg-orange-500/10 rounded-xl">
@@ -220,7 +323,10 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
             <p className="text-2xl font-black text-orange-500">
               {data ? fmt(data.revenue) : "—"}
             </p>
-            <p className="text-[10px] text-zinc-600 mt-1">CLP con IVA / {data?.label}</p>
+            <div className="flex items-end justify-between mt-2">
+              <p className="text-[10px] text-zinc-600">CLP con IVA / {data?.label}</p>
+              <Sparkline data={spark.revenue} color="#f97316" />
+            </div>
           </div>
 
           {/* Despachos */}
@@ -230,7 +336,10 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
             </div>
             <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Despachos</p>
             <p className="text-2xl font-black text-white">{data?.despachos ?? "—"}</p>
-            <p className="text-[10px] text-zinc-600 mt-1">{data?.label}</p>
+            <div className="flex items-end justify-between mt-2">
+              <p className="text-[10px] text-zinc-600">{data?.label}</p>
+              <Sparkline data={spark.dispatches} color="#60a5fa" />
+            </div>
           </div>
 
           {/* Clientes activos */}
@@ -240,7 +349,10 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
             </div>
             <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Clientes activos</p>
             <p className="text-2xl font-black text-white">{data?.clientesActivos ?? "—"}</p>
-            <p className="text-[10px] text-zinc-600 mt-1">de {data?.clientesTotal ?? "—"} totales</p>
+            <div className="flex items-end justify-between mt-2">
+              <p className="text-[10px] text-zinc-600">de {data?.clientesTotal ?? "—"} totales</p>
+              <Sparkline data={spark.clients} color="#34d399" />
+            </div>
           </div>
 
           {/* Mermas */}
@@ -250,7 +362,10 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
             </div>
             <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Mermas</p>
             <p className="text-2xl font-black text-white">{data?.mermas ?? "—"}</p>
-            <p className="text-[10px] text-zinc-600 mt-1">{data?.label}</p>
+            <div className="flex items-end justify-between mt-2">
+              <p className="text-[10px] text-zinc-600">{data?.label}</p>
+              <Sparkline data={spark.mermas} color="#f87171" />
+            </div>
           </div>
         </div>
 
@@ -270,12 +385,18 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
                     {solicitudes.length} pedido{solicitudes.length > 1 ? "s" : ""} pendiente{solicitudes.length > 1 ? "s" : ""}
                   </span>
                 </div>
-                {solicitudes.map((s: { id: string; tienda: string; cantidad: number; fechaEntrega: Date; nota: string | null }) => (
+                {solicitudes.map((s: { id: string; tienda: string; cantidad: number; fechaEntrega: Date; nota: string | null; responsable: string | null }) => (
                   <div key={s.id} className="bg-black/30 rounded-xl p-3 text-xs space-y-1.5">
                     <div className="flex items-center justify-between gap-2">
                       <span className="font-bold text-white">{s.tienda}</span>
                       <span className="text-orange-400 font-bold">{s.cantidad} unid.</span>
                     </div>
+                    {s.responsable && (
+                      <p className="text-zinc-500 flex items-center gap-1">
+                        <Users className="w-3 h-3 shrink-0" />
+                        <span className="text-zinc-300 font-medium">{s.responsable}</span>
+                      </p>
+                    )}
                     <p className="text-zinc-500">
                       Entrega: <span className="text-zinc-300">
                         {new Date(s.fechaEntrega).toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "short" })}
@@ -366,6 +487,64 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
             </div>
           </div>
         </div>
+
+        {/* Time Market — comparativo de tiendas */}
+        {tmData.some((s) => s.despachos > 0) && (
+          <div className="mt-6 bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
+              <h2 className="font-semibold text-sm text-white flex items-center gap-2">
+                <Truck className="w-4 h-4 text-blue-400" />
+                Time Market — Comparativo de Tiendas
+                <span className="text-zinc-600 font-normal text-xs ml-1">este mes</span>
+              </h2>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-left text-[11px] uppercase tracking-widest text-zinc-500 border-b border-zinc-800">
+                    <th className="px-6 py-3">Tienda</th>
+                    <th className="px-4 py-3 text-right">Despachos</th>
+                    <th className="px-4 py-3 text-right">Unidades</th>
+                    <th className="px-4 py-3 text-right">Pendiente</th>
+                    <th className="px-4 py-3 text-right">Mermas</th>
+                    <th className="px-6 py-3">Actividad</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {(() => {
+                    const maxUnidades = Math.max(...tmData.map((s) => s.unidades), 1);
+                    return tmData
+                      .sort((a, b) => b.unidades - a.unidades)
+                      .map((store) => (
+                        <tr key={store.tienda} className="border-b border-zinc-800/40 hover:bg-zinc-800/20 transition-colors">
+                          <td className="px-6 py-3 font-medium text-white">{store.tienda}</td>
+                          <td className="px-4 py-3 text-right text-zinc-400">{store.despachos}</td>
+                          <td className="px-4 py-3 text-right font-bold text-white">{store.unidades}</td>
+                          <td className={`px-4 py-3 text-right font-bold text-xs ${store.pendiente > 0 ? "text-red-400" : "text-zinc-600"}`}>
+                            {store.pendiente > 0 ? fmt(store.pendiente) : "—"}
+                          </td>
+                          <td className={`px-4 py-3 text-right text-xs ${store.mermas > 0 ? "text-amber-400 font-bold" : "text-zinc-600"}`}>
+                            {store.mermas > 0 ? `-${store.mermas}` : "—"}
+                          </td>
+                          <td className="px-6 py-3">
+                            <div className="flex items-center gap-2">
+                              <div className="flex-1 bg-zinc-800 rounded-full h-1.5 max-w-[120px]">
+                                <div
+                                  className="h-1.5 rounded-full bg-blue-500"
+                                  style={{ width: `${(store.unidades / maxUnidades) * 100}%` }}
+                                />
+                              </div>
+                              <span className="text-[10px] text-zinc-600">{Math.round((store.unidades / maxUnidades) * 100)}%</span>
+                            </div>
+                          </td>
+                        </tr>
+                      ));
+                  })()}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

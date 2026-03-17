@@ -8,10 +8,13 @@ export const dynamic = "force-dynamic";
 
 const PORTAL_RUT_MAP: Record<string, string> = {
   [process.env.APP_USERNAME_3 ?? "timemarket"]: process.env.PORTAL_CLIENT_RUT ?? "76452043-2",
-  [process.env.APP_USERNAME_4 ?? "susana"]: "76915420-5",
 };
 
-const TM_STORE_MAP: Record<string, { clienteId: string; tienda: string }> = {
+// Todos los usuarios que usan SubUserView (TM tiendas + Susana)
+const SUBUSER_MAP: Record<string, { clienteId: string; tienda: string; brand?: string }> = {
+  // Susana
+  [process.env.APP_USERNAME_4 ?? "susana"]: { clienteId: "cmmnna99z00003pky0t1y3lbg", tienda: "Dejate Querer", brand: "Rest" },
+  // Time Market tiendas
   "tm.vivar":       { clienteId: "cmmnmfpkv0001r4kyrfgs13z9", tienda: "Vivar" },
   "tm.terranova":   { clienteId: "cmmnmh1mf0002r4kysf9yc5xo", tienda: "Terranova" },
   "tm.chipana":     { clienteId: "cmmnmjxy60003r4kymk3ikkub", tienda: "Chipana" },
@@ -27,16 +30,16 @@ export default async function PortalPage() {
   const session = await auth();
   const username = session?.user?.name ?? "";
 
-  const tmStore = TM_STORE_MAP[username];
-  if (tmStore) {
+  const subUser = SUBUSER_MAP[username];
+  if (subUser) {
     const [envios, mermas, productos] = await Promise.all([
       (prisma.envio as any).findMany({
-        where: { clienteId: tmStore.clienteId },
+        where: { clienteId: subUser.clienteId },
         include: { detalles: { include: { producto: { select: { nombre: true, precioBase: true, tasaIva: true } } } } },
         orderBy: { fecha: "desc" },
       }),
       prisma.merma.findMany({
-        where: { clienteId: tmStore.clienteId },
+        where: { clienteId: subUser.clienteId },
         include: { producto: { select: { nombre: true } } },
         orderBy: { fecha: "desc" },
         take: 30,
@@ -49,8 +52,9 @@ export default async function PortalPage() {
         envios={envios.map((e: any) => ({ ...e, fecha: e.fecha.toISOString(), fechaPago: e.fechaPago?.toISOString() ?? null }))}
         mermas={mermas.map((m: any) => ({ ...m, fecha: m.fecha.toISOString() }))}
         productos={productos}
-        clienteId={tmStore.clienteId}
-        tienda={tmStore.tienda}
+        clienteId={subUser.clienteId}
+        tienda={subUser.tienda}
+        brand={subUser.brand}
       />
     );
   }
@@ -60,7 +64,10 @@ export default async function PortalPage() {
 
   const clientes = await prisma.cliente.findMany({ where: { rut: portalRut } });
   const clienteIds = clientes.map((c) => c.id);
-  const razonSocial = clientes[0]?.razonSocial ?? "Portal";
+  const DISPLAY_NAME_MAP: Record<string, string> = {
+    [process.env.APP_USERNAME_3 ?? "timemarket"]: "Gerencia Time Market",
+  };
+  const razonSocial = DISPLAY_NAME_MAP[username] ?? clientes[0]?.razonSocial ?? "Portal";
 
   const envios = await (prisma.envio as any).findMany({
     where: { clienteId: { in: clienteIds } },

@@ -27,6 +27,7 @@ model SolicitudPedido {
   tienda       String
   cantidad     Int
   nota         String?
+  responsable  String?
   fechaEntrega DateTime
   estado       String   @default("pendiente")  // pendiente | confirmada | despachada
   createdAt    DateTime @default(now())
@@ -74,15 +75,16 @@ model DetalleEnvio {
 }
 
 model Merma {
-  id         String   @id @default(cuid())
-  fecha      DateTime @default(now())
-  clienteId  String
-  productoId String
-  envioId    String?
-  cantidad   Int
-  motivo     String?
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String   @id @default(cuid())
+  fecha       DateTime @default(now())
+  clienteId   String
+  productoId  String
+  envioId     String?
+  cantidad    Int
+  motivo      String?
+  responsable String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
   envio      Envio?   @relation(fields: [envioId], references: [id])
   cliente    Cliente  @relation(fields: [clienteId], references: [id])
   producto   Producto @relation(fields: [productoId], references: [id])

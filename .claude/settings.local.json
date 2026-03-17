@@ -22,7 +22,10 @@
       "Bash(npm install:*)",
       "Bash(python3 -c \":*)",
       "WebSearch",
-      "WebFetch(domain:www.rappi.cl)"
+      "WebFetch(domain:www.rappi.cl)",
+      "Bash(node -e \":*)",
+      "Bash(npx dotenv -e .env -- node -e \":*)",
+      "Bash(python -m pip install psycopg2-binary -q)"
     ]
   }
 }

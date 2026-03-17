@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { getReporteByRange, type ReporteData } from "@/actions/reportes";
 import Link from "next/link";
-import { ArrowLeft, TrendingUp, DollarSign, Package, Truck, AlertTriangle, Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import { ArrowLeft, TrendingUp, DollarSign, Package, Truck, AlertTriangle, Calendar, ChevronLeft, ChevronRight, Download } from "lucide-react";
 
 type FilterMode = "dia" | "semana" | "mes";
 
@@ -136,6 +136,17 @@ export default function ReportesPage() {
           >
             <Calendar className="w-4 h-4" /> Hoy
           </button>
+
+          {/* CSV Export */}
+          {reporte && (
+            <a
+              href={`/api/export?inicio=${encodeURIComponent(getRange(mode, refDate).inicio)}&fin=${encodeURIComponent(getRange(mode, refDate).fin)}&label=${encodeURIComponent(reporte.label)}`}
+              download
+              className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-700/20 hover:bg-emerald-700/40 border border-emerald-700/30 text-sm font-medium transition-colors text-emerald-400"
+            >
+              <Download className="w-4 h-4" /> Exportar CSV
+            </a>
+          )}
         </div>
 
         {/* Loading state */}

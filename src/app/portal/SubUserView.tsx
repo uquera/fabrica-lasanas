@@ -1,11 +1,11 @@
 "use client";
 
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { signOut } from "next-auth/react";
 import {
   LogOut, Package, Eye, CheckCircle, Upload, Loader2, X,
   ExternalLink, AlertTriangle, ShieldAlert, Plus, Minus,
-  TrendingUp, Clock, CreditCard, ChevronDown, ShoppingCart, CalendarCheck,
+  TrendingUp, Clock, CreditCard, ChevronDown, ShoppingCart, CalendarCheck, User,
 } from "lucide-react";
 import Image from "next/image";
 import { marcarPagado } from "@/actions/portal";
@@ -111,17 +111,17 @@ function BarChart({ envios }: { envios: Envio[] }) {
 
 // ── Main Component ─────────────────────────────────────────────────────────
 export default function SubUserView({
-  envios, mermas, productos, clienteId, tienda,
+  envios, mermas, productos, clienteId, tienda, brand = "Time Market",
 }: {
-  envios: Envio[]; mermas: Merma[]; productos: Producto[]; clienteId: string; tienda: string;
+  envios: Envio[]; mermas: Merma[]; productos: Producto[]; clienteId: string; tienda: string; brand?: string;
 }) {
   const [tab, setTab] = useState<"pedidos" | "mermas" | "pedido">("pedidos");
 
-  // ── Próximos martes y viernes ───────────────────────────────────────────
+  // ─── Próximos martes y viernes ───────────────────────────────────────────
   function proximoDia(dia: number): Date { // 2=martes, 5=viernes
     const hoy = new Date();
     let diff = dia - hoy.getDay();
-    if (diff <= 0) diff += 7;
+    if (diff < 0) diff += 7;
     const d = new Date(hoy);
     d.setDate(hoy.getDate() + diff);
     d.setHours(0, 0, 0, 0);
@@ -129,7 +129,9 @@ export default function SubUserView({
   }
   const proximoMartes  = proximoDia(2);
   const proximoViernes = proximoDia(5);
-  const [fechaEntrega, setFechaEntrega] = useState<Date>(proximoMartes);
+
+  const fechaInicial = proximoMartes.getTime() <= proximoViernes.getTime() ? proximoMartes : proximoViernes;
+  const [fechaEntrega, setFechaEntrega] = useState<Date>(fechaInicial);
   const [pedidoCantidad, setPedidoCantidad] = useState(10);
   const [pedidoNota, setPedidoNota] = useState("");
   const [pedidoSending, setPedidoSending] = useState(false);
@@ -144,6 +146,7 @@ export default function SubUserView({
       cantidad: pedidoCantidad,
       nota: pedidoNota,
       fechaEntrega: fechaEntrega.toISOString(),
+      responsable: responsable || undefined,
     });
     setPedidoSending(false);
     setPedidoOk(true);
@@ -151,6 +154,16 @@ export default function SubUserView({
     setPedidoNota("");
     setTimeout(() => setPedidoOk(false), 5000);
   }
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [responsable, setResponsable] = useState("");
+  useEffect(() => {
+    const saved = localStorage.getItem(`responsable_${clienteId}`);
+    if (saved) setResponsable(saved);
+  }, [clienteId]);
+  const saveResponsable = (name: string) => {
+    setResponsable(name);
+    localStorage.setItem(`responsable_${clienteId}`, name);
+  };
   const [pagoModal, setPagoModal] = useState<{ envioId: string; folio: number | null } | null>(null);
   const [pagoFile, setPagoFile] = useState<File | null>(null);
   const [pagando, setPagando] = useState(false);
@@ -279,7 +292,7 @@ export default function SubUserView({
             ) : <span className="text-orange-500 font-black">A</span>}
           </div>
           <div>
-            <p className="font-bold text-sm">Time Market — {tienda}</p>
+            <p className="font-bold text-sm">{brand} — {tienda}</p>
             <p className="text-zinc-500 text-xs">Portal de tienda · Doña Any</p>
           </div>
         </div>
@@ -401,40 +414,65 @@ export default function SubUserView({
                         const total = neto * 1.19;
                         const unidades = envio.detalles.reduce((s, d) => s + d.cantidad, 0);
                         const pagado = isPagado(envio);
+                        const isExpanded = expanded === envio.id;
                         return (
-                          <tr key={envio.id} className={`border-b border-zinc-800/50 transition-colors ${pagado ? "bg-emerald-950/10" : "hover:bg-zinc-800/20"}`}>
-                            <td className="px-5 py-3.5 text-zinc-300">{fmtDate(envio.fecha)}</td>
-                            <td className="px-5 py-3.5">
-                              <span className="font-mono text-xs bg-zinc-800 px-2 py-0.5 rounded-md">#{envio.folio ?? "—"}</span>
-                            </td>
-                            <td className="px-5 py-3.5 text-right font-bold">{unidades}</td>
-                            <td className="px-5 py-3.5 text-right font-bold text-orange-400">{fmt(total)}</td>
-                            <td className="px-5 py-3.5 text-center">
-                              {pagado ? (
-                                <div className="flex items-center justify-center gap-1">
-                                  <CheckCircle className="w-4 h-4 text-emerald-400" />
-                                  {(envio.comprobantePago) && (
-                                    <a href={`/api/comprobante?file=${envio.comprobantePago}`} target="_blank" rel="noopener noreferrer"
-                                      className="text-zinc-500 hover:text-orange-400">
-                                      <ExternalLink className="w-3 h-3" />
-                                    </a>
-                                  )}
-                                </div>
-                              ) : (
-                                <button onClick={() => setPagoModal({ envioId: envio.id, folio: envio.folio })}
-                                  className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border border-zinc-600 text-zinc-400 hover:border-emerald-500/50 hover:text-emerald-400 transition-colors">
-                                  <Upload className="w-3 h-3" /> Pagar
-                                </button>
-                              )}
-                            </td>
-                            <td className="px-5 py-3.5">
-                              <a href={`/api/guia?envioId=${envio.id}`} target="_blank" rel="noopener noreferrer"
-                                className="flex items-center gap-1 text-xs text-zinc-500 hover:text-orange-400 transition-colors">
-                                <Eye className="w-3.5 h-3.5" />
-                                <span className="hidden sm:inline">PDF</span>
-                              </a>
-                            </td>
-                          </tr>
+                          <>
+                            <tr
+                              key={envio.id}
+                              onClick={() => setExpanded(isExpanded ? null : envio.id)}
+                              className={`border-b border-zinc-800/50 transition-colors cursor-pointer select-none ${
+                                isExpanded ? "bg-zinc-800/40" : pagado ? "bg-emerald-950/10 hover:bg-emerald-950/20" : "hover:bg-zinc-800/20"
+                              }`}
+                            >
+                              <td className="px-5 py-3.5 text-zinc-300">{fmtDate(envio.fecha)}</td>
+                              <td className="px-5 py-3.5">
+                                <span className="font-mono text-xs bg-zinc-800 px-2 py-0.5 rounded-md">#{envio.folio ?? "—"}</span>
+                              </td>
+                              <td className="px-5 py-3.5 text-right font-bold">{unidades}</td>
+                              <td className="px-5 py-3.5 text-right font-bold text-orange-400">{fmt(total)}</td>
+                              <td className="px-5 py-3.5 text-center" onClick={(e) => e.stopPropagation()}>
+                                {pagado ? (
+                                  <div className="flex items-center justify-center gap-1">
+                                    <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                    {envio.comprobantePago && (
+                                      <a href={`/api/comprobante?file=${envio.comprobantePago}`} target="_blank" rel="noopener noreferrer"
+                                        className="text-zinc-500 hover:text-orange-400">
+                                        <ExternalLink className="w-3 h-3" />
+                                      </a>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <button onClick={() => setPagoModal({ envioId: envio.id, folio: envio.folio })}
+                                    className="inline-flex items-center gap-1 text-xs px-2.5 py-1 rounded-lg border border-zinc-600 text-zinc-400 hover:border-emerald-500/50 hover:text-emerald-400 transition-colors">
+                                    <Upload className="w-3 h-3" /> Pagar
+                                  </button>
+                                )}
+                              </td>
+                              <td className="px-5 py-3.5" onClick={(e) => e.stopPropagation()}>
+                                <a href={`/api/guia?envioId=${envio.id}`} target="_blank" rel="noopener noreferrer"
+                                  className="flex items-center gap-1 text-xs text-zinc-500 hover:text-orange-400 transition-colors">
+                                  <Eye className="w-3.5 h-3.5" />
+                                  <span className="hidden sm:inline">PDF</span>
+                                </a>
+                              </td>
+                            </tr>
+                            {isExpanded && (
+                              <tr key={`${envio.id}-detail`} className="bg-zinc-800/20 border-b border-zinc-800/50">
+                                <td colSpan={6} className="px-5 py-3">
+                                  <div className="flex flex-wrap gap-2">
+                                    {envio.detalles.map((d, i) => (
+                                      <span key={i} className="inline-flex items-center gap-1.5 text-xs bg-zinc-900 border border-zinc-700 rounded-lg px-3 py-1.5">
+                                        <Package className="w-3 h-3 text-orange-400" />
+                                        <span className="font-bold text-white">{d.cantidad}×</span>
+                                        <span className="text-zinc-400">{d.producto.nombre}</span>
+                                        <span className="text-zinc-600 ml-1">{fmt(d.cantidad * d.producto.precioBase * 1.19)}</span>
+                                      </span>
+                                    ))}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </>
                         );
                       })}
                     </tbody>
@@ -467,6 +505,23 @@ export default function SubUserView({
               )}
 
               <form onSubmit={handlePedido} className="space-y-5">
+                {/* Responsable */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Tu nombre</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={responsable}
+                      onChange={(e) => saveResponsable(e.target.value)}
+                      placeholder="Ej: Juan Pérez"
+                      required
+                      className="w-full bg-black border border-zinc-700 rounded-xl pl-9 pr-3 py-2.5 text-sm focus:outline-none focus:border-orange-500/50"
+                    />
+                  </div>
+                  <p className="text-[10px] text-zinc-600">Tu nombre queda registrado con el pedido</p>
+                </div>
+
                 {/* Fecha de entrega */}
                 <div className="space-y-2">
                   <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Fecha de entrega</label>
@@ -543,6 +598,29 @@ export default function SubUserView({
                 <h2 className="font-bold">Reportar Merma</h2>
               </div>
 
+              {/* Responsable para merma */}
+              {!responsable && (
+                <div className="mb-4 p-3 bg-amber-500/10 border border-amber-500/20 rounded-xl space-y-2">
+                  <p className="text-xs text-amber-400 font-bold">Identifícate antes de reportar</p>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-600 pointer-events-none" />
+                    <input
+                      type="text"
+                      placeholder="Tu nombre..."
+                      className="w-full bg-black border border-zinc-700 rounded-xl pl-9 pr-3 py-2 text-sm focus:outline-none focus:border-amber-500/50"
+                      onChange={(e) => saveResponsable(e.target.value)}
+                    />
+                  </div>
+                </div>
+              )}
+              {responsable && (
+                <div className="mb-4 flex items-center gap-2 text-xs text-zinc-500">
+                  <User className="w-3.5 h-3.5 text-zinc-600" />
+                  Registrando como <span className="text-white font-bold">{responsable}</span>
+                  <button type="button" onClick={() => saveResponsable("")} className="text-zinc-700 hover:text-zinc-400 ml-1">cambiar</button>
+                </div>
+              )}
+
               {mermaOk && (
                 <div className="mb-4 p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-xl text-emerald-400 text-sm flex items-center gap-2">
                   <CheckCircle className="w-4 h-4 shrink-0" /> Merma registrada correctamente.
@@ -551,6 +629,7 @@ export default function SubUserView({
 
               <form ref={mermaFormRef} onSubmit={handleMerma} className="space-y-4">
                 <input type="hidden" name="clienteId" value={clienteId} />
+                <input type="hidden" name="responsable" value={responsable} />
 
                 <div className="space-y-1.5">
                   <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Producto</label>
