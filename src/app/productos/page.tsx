@@ -15,7 +15,7 @@ export default function ProductosPage() {
   const [editData, setEditData] = useState({ nombre: "", sku: "", precioBase: "", tasaIva: "" });
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const { showToast } = useToast();
+  const { toast: showToast } = useToast();
 
   const reload = () => getProductos().then((p) => { setProductos(p as Producto[]); setLoading(false); });
 
