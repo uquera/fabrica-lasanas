@@ -62,16 +62,10 @@ export async function generarYEnviarGuias(envioIds: string[]): Promise<EmailResu
     if (!envio) continue;
 
     const clienteEmail = envio.cliente.email?.trim();
-
-    // Check email
-    if (!clienteEmail || clienteEmail.length === 0) {
-      console.log(`[PDF] Sin email: ${envio.cliente.razonSocial}`);
-      results.push({ tienda: envio.cliente.razonSocial, email: "", status: "no_email" });
-      continue;
-    }
+    const tieneEmail = !!clienteEmail && clienteEmail.length > 0 && !clienteEmail.startsWith("AUTO-");
 
     try {
-      // Assign folio if not set
+      // 1. Asignar folio siempre (independiente del email)
       let folioNum = envio.folio;
       if (!folioNum) {
         folioNum = await asignarFolio(envio.id);
@@ -79,9 +73,7 @@ export async function generarYEnviarGuias(envioIds: string[]): Promise<EmailResu
       const folio = String(folioNum);
       const fechaStr = new Date(envio.fecha).toLocaleDateString("es-CL", { day: "2-digit", month: "long", year: "numeric" });
 
-      console.log(`[PDF] Generando guía Nº${folio} para ${envio.cliente.razonSocial} → ${clienteEmail}`);
-
-      // Generate PDF
+      // 2. Generar PDF siempre
       const pdfElement = React.createElement(GuiaDespachoPDF, {
         folio,
         fecha: fechaStr,
@@ -96,17 +88,31 @@ export async function generarYEnviarGuias(envioIds: string[]): Promise<EmailResu
           codigo: d.producto.sku,
           descripcion: d.producto.nombre,
           cantidad: d.cantidad,
-          precioUnitario: d.producto.precioBase,  // precio neto
+          precioUnitario: d.producto.precioBase,
           tasaIva: d.producto.tasaIva ?? 0.19,
         })),
       });
-
       const pdfBuffer = await renderToBuffer(pdfElement as any);
-      console.log(`[PDF] PDF generado (${pdfBuffer.byteLength} bytes)`);
+      console.log(`[PDF] PDF generado Nº${folio} (${pdfBuffer.byteLength} bytes)`);
 
-      // Send email
+      // 3. Guardar guiaDespacho en BD siempre (antes de intentar email)
+      await prisma.envio.update({
+        where: { id: envio.id },
+        data: { guiaDespacho: `GDE-${folio}` },
+      });
+      revalidatePath("/guias");
+      revalidatePath("/");
+
+      // 4. Enviar email solo si hay dirección válida
+      if (!tieneEmail) {
+        console.log(`[PDF] Sin email válido: ${envio.cliente.razonSocial} — guía guardada sin envío`);
+        results.push({ tienda: envio.cliente.razonSocial, email: "", status: "no_email" });
+        continue;
+      }
+
+      console.log(`[PDF] Enviando guía Nº${folio} a ${clienteEmail}`);
       const emailResult = await sendMail({
-        to: clienteEmail,
+        to: clienteEmail!,
         subject: `Guía de Despacho Nº${folio} - Doña Any`,
         text: `Estimado/a ${envio.cliente.razonSocial},\n\nAdjunto encontrará su guía de despacho correspondiente al envío del ${fechaStr}.\n\nSaludos cordiales,\nComercializadora de Alimentos Ulises Querales E.I.R.L.`,
         attachments: [{
@@ -118,19 +124,14 @@ export async function generarYEnviarGuias(envioIds: string[]): Promise<EmailResu
 
       if (emailResult.success) {
         console.log(`[PDF] ✓ Email enviado a ${clienteEmail}`);
-        await prisma.envio.update({
-          where: { id: envio.id },
-          data: { guiaDespacho: `GDE-${folio}` },
-        });
-        revalidatePath("/guias");
-        results.push({ tienda: envio.cliente.razonSocial, email: clienteEmail, status: "sent" });
+        results.push({ tienda: envio.cliente.razonSocial, email: clienteEmail!, status: "sent" });
       } else {
         console.error(`[PDF] ✗ Error enviando email: ${emailResult.error}`);
-        results.push({ tienda: envio.cliente.razonSocial, email: clienteEmail, status: "error", error: emailResult.error });
+        results.push({ tienda: envio.cliente.razonSocial, email: clienteEmail!, status: "error", error: emailResult.error });
       }
     } catch (err: any) {
       console.error(`[PDF] ✗ Error para ${envio.cliente.razonSocial}:`, err.message);
-      results.push({ tienda: envio.cliente.razonSocial, email: clienteEmail, status: "error", error: err.message });
+      results.push({ tienda: envio.cliente.razonSocial, email: clienteEmail ?? "", status: "error", error: err.message });
     }
   }
 
