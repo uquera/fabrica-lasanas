@@ -1,6 +1,7 @@
 import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { ArrowLeft, FileText, CheckCircle2, Clock, Mail, Download } from "lucide-react";
+import GenerarGuiaButton from "@/components/GenerarGuiaButton";
 
 export default async function GuiasPage() {
   const envios = await (prisma.envio as any).findMany({
@@ -105,7 +106,7 @@ export default async function GuiasPage() {
             </h2>
             <div className="space-y-3">
               {pendientes.map((envio: any) => (
-                <div key={envio.id} className="bg-zinc-900/40 border border-zinc-800 hover:border-amber-500/20 rounded-2xl p-5 transition-all opacity-60">
+                <div key={envio.id} className="bg-zinc-900/40 border border-zinc-800 hover:border-amber-500/20 rounded-2xl p-5 transition-all">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-center gap-4">
                       <div className="p-2 bg-amber-500/10 rounded-xl">
@@ -118,7 +119,10 @@ export default async function GuiasPage() {
                         </p>
                       </div>
                     </div>
-                    <p className="text-xs text-zinc-600 shrink-0">{new Date(envio.fecha).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" })}</p>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <p className="text-xs text-zinc-600">{new Date(envio.fecha).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" })}</p>
+                      <GenerarGuiaButton envioId={envio.id} />
+                    </div>
                   </div>
                 </div>
               ))}
