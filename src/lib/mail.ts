@@ -1,14 +1,21 @@
 import nodemailer from "nodemailer";
 
-const getTransporter = () => nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-  connectionTimeout: 10000,
-  socketTimeout: 20000,
-});
+let _transporter: nodemailer.Transporter | null = null;
+
+const getTransporter = () => {
+  if (!_transporter) {
+    _transporter = nodemailer.createTransport({
+      service: "gmail",
+      auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_APP_PASSWORD,
+      },
+      connectionTimeout: 10000,
+      socketTimeout: 20000,
+    });
+  }
+  return _transporter;
+};
 
 export async function sendMail({ to, subject, text, attachments }: { 
   to: string; 
