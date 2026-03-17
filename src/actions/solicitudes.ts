@@ -65,10 +65,8 @@ export async function confirmarSolicitud(id: string) {
       },
     });
 
-    // Disparar protocolo de guía de despacho (folio + PDF + email) en background
-    generarYEnviarGuias([envio.id]).catch((e) =>
-      console.error("[confirmarSolicitud] Error al generar guía:", e)
-    );
+    // Ejecutar protocolo de guía de despacho (folio + PDF + email)
+    await generarYEnviarGuias([envio.id]);
   }
 
   await prisma.solicitudPedido.update({
