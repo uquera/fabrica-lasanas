@@ -118,25 +118,33 @@ export default function SubUserView({
   const [tab, setTab] = useState<"pedidos" | "mermas" | "pedido">("pedidos");
 
   // ─── Fechas de despacho disponibles (martes y viernes) ──────────────────
-  const hoyBase = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d; })();
-  const diaSemanaHoy = hoyBase.getDay();
-  const esDespachoHoy = diaSemanaHoy === 2 || diaSemanaHoy === 5; // martes=2, viernes=5
+  // Calculadas en useEffect para evitar hydration mismatch (server UTC vs cliente Chile)
+  const [fechasDisponibles, setFechasDisponibles] = useState<Date[]>([]);
+  const [hoyBase, setHoyBase] = useState<Date | null>(null);
+  const [fechaEntrega, setFechaEntrega] = useState<Date | null>(null);
 
-  function proximoDiaSiguiente(dia: number): Date { // siempre el próximo, nunca hoy
-    const diff = ((dia - diaSemanaHoy + 7) % 7) || 7;
-    const d = new Date(hoyBase);
-    d.setDate(hoyBase.getDate() + diff);
-    return d;
-  }
-  const proximoMartes  = proximoDiaSiguiente(2);
-  const proximoViernes = proximoDiaSiguiente(5);
+  useEffect(() => {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const diaSemana = hoy.getDay();
+    const esDespachoHoy = diaSemana === 2 || diaSemana === 5;
 
-  const fechasDisponibles: Date[] = [
-    ...(esDespachoHoy ? [hoyBase] : []),
-    ...[proximoMartes, proximoViernes].sort((a, b) => a.getTime() - b.getTime()),
-  ];
+    function proximoDiaSiguiente(dia: number): Date {
+      const diff = ((dia - diaSemana + 7) % 7) || 7;
+      const d = new Date(hoy);
+      d.setDate(hoy.getDate() + diff);
+      return d;
+    }
 
-  const [fechaEntrega, setFechaEntrega] = useState<Date>(fechasDisponibles[0]);
+    const fechas: Date[] = [
+      ...(esDespachoHoy ? [hoy] : []),
+      ...[proximoDiaSiguiente(2), proximoDiaSiguiente(5)].sort((a, b) => a.getTime() - b.getTime()),
+    ];
+
+    setHoyBase(hoy);
+    setFechasDisponibles(fechas);
+    setFechaEntrega(fechas[0]);
+  }, []);
   const [pedidoCantidad, setPedidoCantidad] = useState(10);
   const [pedidoNota, setPedidoNota] = useState("");
   const [pedidoSending, setPedidoSending] = useState(false);
@@ -150,7 +158,7 @@ export default function SubUserView({
       tienda,
       cantidad: pedidoCantidad,
       nota: pedidoNota,
-      fechaEntrega: fechaEntrega.toISOString(),
+      fechaEntrega: fechaEntrega!.toISOString(),
       responsable: responsable || undefined,
     });
     setPedidoSending(false);
@@ -532,9 +540,9 @@ export default function SubUserView({
                   <label className="text-xs font-bold uppercase tracking-wider text-zinc-500">Fecha de entrega</label>
                   <div className={`grid gap-2 ${fechasDisponibles.length === 3 ? "grid-cols-3" : "grid-cols-2"}`}>
                     {fechasDisponibles.map((fecha) => {
-                      const esHoy = fecha.toDateString() === hoyBase.toDateString();
+                      const esHoy = hoyBase ? fecha.toDateString() === hoyBase.toDateString() : false;
                       const label = fecha.toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "short" });
-                      const isSelected = fechaEntrega.toDateString() === fecha.toDateString();
+                      const isSelected = fechaEntrega ? fechaEntrega.toDateString() === fecha.toDateString() : false;
                       return (
                         <button
                           key={fecha.toISOString()}
