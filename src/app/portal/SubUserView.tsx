@@ -145,7 +145,7 @@ export default function SubUserView({
     setFechasDisponibles(fechas);
     setFechaEntrega(fechas[0]);
   }, []);
-  const [pedidoCantidad, setPedidoCantidad] = useState(10);
+  const [pedidoCantidad, setPedidoCantidad] = useState(2);
   const [pedidoNota, setPedidoNota] = useState("");
   const [pedidoSending, setPedidoSending] = useState(false);
   const [pedidoOk, setPedidoOk] = useState(false);
