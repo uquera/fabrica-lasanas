@@ -84,13 +84,19 @@ export async function generarYEnviarGuias(envioIds: string[]): Promise<EmailResu
           giro: envio.cliente.giro,
           direccion: envio.cliente.direccion,
         },
-        items: (envio as any).detalles.map((d: any) => ({
-          codigo: d.producto.sku,
-          descripcion: d.producto.nombre,
-          cantidad: d.cantidad,
-          precioUnitario: d.producto.precioBase,
-          tasaIva: d.producto.tasaIva ?? 0.19,
-        })),
+        items: (envio as any).detalles.map((d: any) => {
+          // precioBase está guardado con IVA incluido (precio final = neto * 1.19)
+          // Calculamos el precio neto real dividiendo por 1.19
+          const tasa = d.producto.tasaIva ?? 0.19;
+          const precioNeto = Math.round(d.producto.precioBase / (1 + tasa));
+          return {
+            codigo: d.producto.sku,
+            descripcion: d.producto.nombre,
+            cantidad: d.cantidad,
+            precioUnitario: precioNeto,
+            tasaIva: tasa,
+          };
+        }),
       });
       const pdfBuffer = await renderToBuffer(pdfElement as any);
       console.log(`[PDF] PDF generado Nº${folio} (${pdfBuffer.byteLength} bytes)`);
