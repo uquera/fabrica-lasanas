@@ -1,12 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { Loader2, User, ArrowLeft, MailCheck } from "lucide-react";
-import Link from "next/link";
 
 export default function ForgotPasswordPage() {
-  const router = useRouter();
   const [username, setUsername] = useState("");
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
