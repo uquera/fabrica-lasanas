@@ -37,14 +37,14 @@ export async function POST(req: NextRequest) {
     }
 
     // Asegurar que el Usuario exista en la tabla
-    await (prisma as any).usuario.upsert({
+    await prisma.usuario.upsert({
       where:  { username },
       update: {},
       create: { username, email },
     });
 
     // Invalidar tokens anteriores del mismo usuario (seguridad)
-    await (prisma as any).passwordResetToken.updateMany({
+    await prisma.passwordResetToken.updateMany({
       where: { username, usedAt: null },
       data:  { usedAt: new Date() },
     });
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     const token = randomBytes(32).toString("hex");
     const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // +1 hora
 
-    await (prisma as any).passwordResetToken.create({
+    await prisma.passwordResetToken.create({
       data: { token, username, expiresAt },
     });
 

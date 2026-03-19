@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Buscar token
-    const resetToken = await (prisma as any).passwordResetToken.findUnique({
+    const resetToken = await prisma.passwordResetToken.findUnique({
       where: { token },
     });
 
@@ -35,14 +35,14 @@ export async function POST(req: NextRequest) {
     const passwordHash = await bcrypt.hash(newPassword, 12);
 
     // Actualizar/crear el registro del usuario con la nueva contraseña
-    await (prisma as any).usuario.upsert({
+    await prisma.usuario.upsert({
       where:  { username: resetToken.username },
       update: { passwordHash },
       create: { username: resetToken.username, email: "", passwordHash },
     });
 
     // Marcar token como usado
-    await (prisma as any).passwordResetToken.update({
+    await prisma.passwordResetToken.update({
       where: { token },
       data:  { usedAt: new Date() },
     });
