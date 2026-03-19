@@ -1,551 +1,331 @@
-import prisma from "@/lib/prisma";
+import { auth } from "@/auth";
+import { redirect } from "next/navigation";
 import Link from "next/link";
-import { TrendingUp, Users, Truck, AlertTriangle, FileText, ArrowRight, Clock, ShoppingCart } from "lucide-react";
-import { Suspense } from "react";
-import DashboardDateFilter from "@/components/DashboardDateFilter";
-import DashboardChart from "@/components/DashboardChart";
-import ClientRanking from "@/components/ClientRanking";
-import { getSolicitudesPendientes } from "@/actions/solicitudes";
-import SolicitudActions from "@/components/SolicitudActions";
+import type { Metadata } from "next";
+import {
+  ChefHat,
+  Truck,
+  Users,
+  ShieldCheck,
+  LogIn,
+  Phone,
+  Mail,
+  MapPin,
+  Star,
+  Package,
+} from "lucide-react";
 
-// ── TM Store IDs ──────────────────────────────────────────────────────────
-const TM_STORES = [
-  { tienda: "Vivar",       clienteId: "cmmnmfpkv0001r4kyrfgs13z9" },
-  { tienda: "Terranova",   clienteId: "cmmnmh1mf0002r4kysf9yc5xo" },
-  { tienda: "Chipana",     clienteId: "cmmnmjxy60003r4kymk3ikkub" },
-  { tienda: "Playa Brava", clienteId: "cmmnm03e800007qkymmpexyb1" },
-  { tienda: "Anibal Pinto",clienteId: "cmmnmoo4m0005r4ky04fyw48a" },
-  { tienda: "Tarapaca",    clienteId: "cmmnmqbom0006r4kyudp2r4qa" },
-  { tienda: "Los Molles",  clienteId: "cmmnmrlqz0007r4kyudp2r4qa" },
-  { tienda: "Bilbao 2",    clienteId: "cmmnmlph80004r4kyvhrm0777" },
-  { tienda: "Peninsula",   clienteId: "cmmnmdjfr0000r4kyba7mwu1j" },
-];
+export const metadata: Metadata = {
+  title: "Doña Any | Fábrica y Distribución de Lasañas en Chile",
+  description:
+    "Doña Any es una fábrica chilena especializada en la elaboración y distribución de lasañas artesanales para supermercados, restaurantes y negocios. Calidad, frescura y entrega directa a tu local.",
+  keywords: [
+    "lasañas Chile",
+    "fábrica de lasañas",
+    "distribución lasañas",
+    "lasañas artesanales",
+    "Doña Any",
+    "lasañas para supermercados",
+    "lasañas para restaurantes",
+    "comida italiana Chile",
+    "distribuidor lasañas",
+    "lasañas congeladas Chile",
+    "B2B alimentos Chile",
+  ],
+  metadataBase: new URL("https://donnaany.com"),
+  openGraph: {
+    title: "Doña Any | Fábrica y Distribución de Lasañas",
+    description:
+      "Lasañas artesanales elaboradas con ingredientes de calidad, distribuidas directamente a tu negocio en Chile.",
+    url: "https://donnaany.com",
+    siteName: "Doña Any",
+    locale: "es_CL",
+    type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Doña Any | Fábrica de Lasañas en Chile",
+    description:
+      "Distribuimos lasañas artesanales directamente a supermercados y negocios en Chile.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: { index: true, follow: true },
+  },
+};
 
-async function getTMData() {
-  const now = new Date();
-  const start = new Date(now.getFullYear(), now.getMonth(), 1);
-  const allClienteIds = TM_STORES.map((s) => s.clienteId);
-  const [envios, mermas] = await Promise.all([
-    (prisma.envio as any).findMany({
-      where: { clienteId: { in: allClienteIds }, fecha: { gte: start } },
-      include: { detalles: { include: { producto: true } } },
-    }),
-    prisma.merma.groupBy({
-      by: ["clienteId"],
-      where: { clienteId: { in: allClienteIds }, fecha: { gte: start } },
-      _sum: { cantidad: true },
-    }),
-  ]);
-  const mermaMap: Record<string, number> = {};
-  for (const m of mermas) mermaMap[m.clienteId] = (m._sum as any).cantidad ?? 0;
-  return TM_STORES.map(({ tienda, clienteId }) => {
-    const storeEnvios = envios.filter((e: any) => e.clienteId === clienteId);
-    const unidades = storeEnvios.reduce((s: number, e: any) =>
-      s + e.detalles.reduce((ss: number, d: any) => ss + d.cantidad, 0), 0);
-    const pendiente = storeEnvios
-      .filter((e: any) => !e.pagado)
-      .reduce((s: number, e: any) =>
-        s + e.detalles.reduce((ss: number, d: any) =>
-          ss + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0), 0);
-    return { tienda, unidades, pendiente, mermas: mermaMap[clienteId] ?? 0, despachos: storeEnvios.length };
-  });
-}
+const jsonLd = {
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "FoodEstablishment",
+      "@id": "https://donnaany.com/#business",
+      name: "Doña Any — Fábrica de Lasañas",
+      description:
+        "Fábrica chilena especializada en la elaboración y distribución de lasañas artesanales para el comercio B2B.",
+      url: "https://donnaany.com",
+      address: {
+        "@type": "PostalAddress",
+        addressCountry: "CL",
+        addressRegion: "Chile",
+      },
+      servesCuisine: "Italiana",
+      priceRange: "$$",
+      openingHours: "Mo-Fr 08:00-18:00",
+      hasOfferCatalog: {
+        "@type": "OfferCatalog",
+        name: "Catálogo de Lasañas",
+        itemListElement: [
+          { "@type": "Offer", itemOffered: { "@type": "Product", name: "Lasaña de Carne" } },
+          { "@type": "Offer", itemOffered: { "@type": "Product", name: "Lasaña Vegetariana" } },
+          { "@type": "Offer", itemOffered: { "@type": "Product", name: "Lasaña de Pollo" } },
+          { "@type": "Offer", itemOffered: { "@type": "Product", name: "Lasaña 4 Quesos" } },
+        ],
+      },
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://donnaany.com/#website",
+      url: "https://donnaany.com",
+      name: "Doña Any",
+      publisher: { "@id": "https://donnaany.com/#business" },
+      inLanguage: "es-CL",
+    },
+  ],
+};
 
-// ── Sparkline SVG ──────────────────────────────────────────────────────────
-function Sparkline({ data, color = "#f97316" }: { data: number[]; color?: string }) {
-  if (data.length < 2) return null;
-  const max = Math.max(...data, 1);
-  const W = 72, H = 24;
-  const pts = data
-    .map((v, i) => {
-      const x = (i / (data.length - 1)) * W;
-      const y = H - (v / max) * (H - 2) - 1;
-      return `${x.toFixed(1)},${y.toFixed(1)}`;
-    })
-    .join(" ");
-  return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} className="shrink-0 opacity-70">
-      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-// ── Sparkline data (últimos 7 días, independiente del filtro) ──────────────
-async function getSparklineData() {
-  const now = new Date();
-  const sevenDaysAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6, 0, 0, 0);
-  const [sparkEnvios, sparkMermas] = await Promise.all([
-    (prisma.envio as any).findMany({
-      where: { fecha: { gte: sevenDaysAgo } },
-      include: { detalles: { include: { producto: true } } },
-    }),
-    prisma.merma.findMany({
-      where: { fecha: { gte: sevenDaysAgo } },
-      select: { fecha: true, cantidad: true },
-    }),
-  ]);
-  return Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (6 - i));
-    const ds = d.toISOString().split("T")[0];
-    const dayEnvios = sparkEnvios.filter((e: any) => new Date(e.fecha).toISOString().split("T")[0] === ds);
-    const dayMermas = sparkMermas.filter((m: any) => new Date(m.fecha).toISOString().split("T")[0] === ds);
-    const revenue = dayEnvios.reduce((s: number, e: any) =>
-      s + e.detalles.reduce((ss: number, d: any) =>
-        ss + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0), 0);
-    return {
-      revenue,
-      dispatches: dayEnvios.length,
-      clients: new Set(dayEnvios.map((e: any) => e.clienteId)).size,
-      mermas: dayMermas.reduce((s: number, m: any) => s + m.cantidad, 0),
-    };
-  });
-}
-
-async function getDashboardData(range: string = "month", fromParam?: string, toParam?: string) {
-  const now = new Date();
-  let start: Date, end: Date, prevStart: Date, prevEnd: Date;
-  let label = "";
-
-  // Custom date range takes priority
-  if (fromParam && toParam) {
-    start = new Date(fromParam + "T00:00:00");
-    end   = new Date(toParam   + "T23:59:59");
-    const diff = end.getTime() - start.getTime();
-    prevEnd   = new Date(start.getTime() - 1);
-    prevStart = new Date(prevEnd.getTime() - diff);
-    const fmt = (d: Date) => d.toLocaleDateString("es-CL", { day: "2-digit", month: "short" });
-    label = `${fmt(start)} – ${fmt(end)}`;
-  } else {
-    switch (range) {
-      case "day":
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        end = now;
-        prevStart = new Date(start);
-        prevStart.setDate(prevStart.getDate() - 1);
-        prevEnd = new Date(start);
-        prevEnd.setMilliseconds(-1);
-        label = "hoy";
-        break;
-      case "yesterday":
-        start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
-        end = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        end.setMilliseconds(-1);
-        prevStart = new Date(start);
-        prevStart.setDate(prevStart.getDate() - 1);
-        prevEnd = new Date(start);
-        prevEnd.setMilliseconds(-1);
-        label = "ayer";
-        break;
-      case "week":
-        start = new Date(now);
-        start.setDate(start.getDate() - 7);
-        end = now;
-        prevStart = new Date(start);
-        prevStart.setDate(prevStart.getDate() - 7);
-        prevEnd = new Date(start);
-        prevEnd.setMilliseconds(-1);
-        label = "últimos 7 días";
-        break;
-      case "year":
-        start = new Date(now.getFullYear(), 0, 1);
-        end = now;
-        prevStart = new Date(now.getFullYear() - 1, 0, 1);
-        prevEnd = new Date(now.getFullYear(), 0, 0, 23, 59, 59);
-        label = "este año";
-        break;
-      case "month":
-      default:
-        start = new Date(now.getFullYear(), now.getMonth(), 1);
-        end = now;
-        prevStart = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-        prevEnd = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
-        label = "este mes";
-        break;
-    }
-  }
-
-  try {
-    const [
-      enviosActual,
-      enviosAnterior,
-      mermasActual,
-      mermasPorCliente,
-      clientesTotal,
-      recentEnvios,
-      guiasPendientes,
-    ] = await Promise.all([
-      (prisma.envio as any).findMany({
-        where: { fecha: { gte: start, lte: end } },
-        include: { detalles: { include: { producto: true } }, cliente: { select: { razonSocial: true } } },
-      }),
-      (prisma.envio as any).findMany({
-        where: { fecha: { gte: prevStart, lte: prevEnd } },
-        include: { detalles: { include: { producto: true } } },
-      }),
-      prisma.merma.count({ where: { fecha: { gte: start, lte: end } } }),
-      prisma.merma.groupBy({
-        by: ["clienteId"],
-        where: { fecha: { gte: start, lte: end } },
-        _count: { id: true },
-      }),
-      prisma.cliente.count(),
-      (prisma.envio as any).findMany({
-        orderBy: { fecha: "desc" },
-        take: 6,
-        include: { cliente: { select: { razonSocial: true } }, detalles: { include: { producto: true } } },
-      }),
-      (prisma.envio as any).count({ where: { guiaDespacho: null } }),
-    ]);
-
-    const calcRevenue = (envios: any[]) =>
-      envios.reduce((total: number, envio: any) =>
-        total + envio.detalles.reduce((s: number, d: any) =>
-          s + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0), 0);
-
-    const revenueActual = calcRevenue(enviosActual);
-    const revenueAnterior = calcRevenue(enviosAnterior);
-    const revenueChange = revenueAnterior > 0
-      ? ((revenueActual - revenueAnterior) / revenueAnterior) * 100
-      : null;
-
-    const clientesActivos = new Set(enviosActual.map((e: any) => e.clienteId)).size;
-
-    // Chart data: group by day
-    const dayMap: Record<string, { count: number; revenue: number }> = {};
-    for (const envio of enviosActual) {
-      const day = new Date(envio.fecha).toISOString().split("T")[0];
-      if (!dayMap[day]) dayMap[day] = { count: 0, revenue: 0 };
-      dayMap[day].count++;
-      dayMap[day].revenue += envio.detalles.reduce((s: number, d: any) =>
-        s + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0);
-    }
-    const chartData = Object.entries(dayMap)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, v]) => ({ date, ...v }));
-
-    // Ranking: group by client
-    const mermaMap: Record<string, number> = {};
-    for (const m of mermasPorCliente) mermaMap[m.clienteId] = m._count.id;
-
-    const clientMap: Record<string, { id: string; razonSocial: string; revenue: number; despachos: number; mermas: number }> = {};
-    for (const envio of enviosActual) {
-      const id = envio.clienteId;
-      if (!clientMap[id]) clientMap[id] = { id, razonSocial: envio.cliente.razonSocial, revenue: 0, despachos: 0, mermas: mermaMap[id] ?? 0 };
-      clientMap[id].despachos++;
-      clientMap[id].revenue += envio.detalles.reduce((s: number, d: any) =>
-        s + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0);
-    }
-    const rankingData = Object.values(clientMap);
-
-    return {
-      revenue: Math.round(revenueActual),
-      revenueChange,
-      despachos: enviosActual.length,
-      clientesActivos,
-      clientesTotal,
-      mermas: mermasActual,
-      recentEnvios,
-      guiasPendientes,
-      chartData,
-      rankingData,
-      label,
-    };
-  } catch (e) {
-    console.error("Dashboard data error:", e);
-    return null;
-  }
-}
-
-const fmt = (n: number) => "$" + Math.round(n).toLocaleString("es-CL");
-
-export default async function DashboardPage(props: { searchParams: Promise<{ range?: string; from?: string; to?: string }> }) {
-  const searchParams = await props.searchParams;
-  const range = searchParams.range || "month";
-  const fromParam = searchParams.from;
-  const toParam   = searchParams.to;
-  const [data, solicitudes, sparkDays, tmData] = await Promise.all([
-    getDashboardData(range, fromParam, toParam),
-    getSolicitudesPendientes(),
-    getSparklineData(),
-    getTMData(),
-  ]);
-  type SparkDay = { revenue: number; dispatches: number; clients: number; mermas: number };
-  const spark = {
-    revenue:    (sparkDays as SparkDay[]).map((d) => d.revenue),
-    dispatches: (sparkDays as SparkDay[]).map((d) => d.dispatches),
-    clients:    (sparkDays as SparkDay[]).map((d) => d.clients),
-    mermas:     (sparkDays as SparkDay[]).map((d) => d.mermas),
-  };
+export default async function LandingPage() {
+  const session = await auth();
+  if (session) redirect("/dashboard");
 
   return (
-    <div className="min-h-screen bg-[#0a0a0a] text-zinc-100 p-6 lg:p-8 pt-16 lg:pt-8">
-      {/* Background glow */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-[-10%] right-[10%] w-[35%] h-[35%] bg-orange-600/8 rounded-full blur-[120px]" />
-      </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
 
-      <div className="max-w-6xl mx-auto relative z-10">
-        {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
-          <div>
-            <h1 className="text-2xl font-bold text-white">Dashboard</h1>
-            <p className="text-zinc-500 text-sm mt-1 capitalize">
-              Resumen de {data?.label ?? "este mes"}
-            </p>
-          </div>
-
-          {/* Date Filter */}
-          <Suspense fallback={<div className="h-9 w-64 bg-zinc-900/80 border border-zinc-800 rounded-xl animate-pulse" />}>
-            <DashboardDateFilter />
-          </Suspense>
+      <div className="min-h-screen bg-[#0a0a0a] text-zinc-100">
+        {/* Background glow */}
+        <div className="fixed inset-0 overflow-hidden pointer-events-none">
+          <div className="absolute top-[-5%] right-[15%] w-[40%] h-[40%] bg-orange-600/8 rounded-full blur-[140px]" />
+          <div className="absolute bottom-[10%] left-[5%] w-[30%] h-[30%] bg-orange-600/5 rounded-full blur-[100px]" />
         </div>
 
-        {/* KPI Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {/* Revenue */}
-          {/* Revenue */}
-          <div className="col-span-2 lg:col-span-1 bg-zinc-900/60 border border-zinc-800 rounded-2xl p-5 hover:border-orange-500/30 transition-all">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 bg-orange-500/10 rounded-xl">
-                <div className="w-4 h-4 text-orange-500"><TrendingUp size={16} /></div>
-              </div>
-              {data?.revenueChange !== null && data?.revenueChange !== undefined && (
-                <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${
-                  data.revenueChange >= 0
-                    ? "bg-emerald-500/10 text-emerald-400"
-                    : "bg-red-500/10 text-red-400"
-                }`}>
-                  {data.revenueChange >= 0 ? "+" : ""}{data.revenueChange.toFixed(0)}%
-                </span>
-              )}
+        {/* Navbar */}
+        <nav className="fixed top-0 left-0 right-0 z-50 border-b border-zinc-800/60 bg-[#0a0a0a]/80 backdrop-blur-md">
+          <div className="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+            <div className="flex items-center gap-2.5">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="Doña Any" className="h-9 w-auto" />
             </div>
-            <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Ingresos</p>
-            <p className="text-2xl font-black text-orange-500">
-              {data ? fmt(data.revenue) : "—"}
+            <Link
+              href="/login"
+              className="flex items-center gap-2 bg-orange-500 hover:bg-orange-400 transition-colors text-white text-sm font-semibold px-4 py-2 rounded-xl"
+            >
+              <LogIn className="w-4 h-4" />
+              Acceder al sistema
+            </Link>
+          </div>
+        </nav>
+
+        {/* Hero */}
+        <section className="pt-36 pb-24 px-6 relative z-10">
+          <div className="max-w-4xl mx-auto text-center">
+            <div className="inline-flex items-center gap-2 bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-semibold px-4 py-1.5 rounded-full mb-6 uppercase tracking-wider">
+              <ChefHat className="w-3.5 h-3.5" />
+              Distribución B2B — Chile
+            </div>
+            <h1 className="text-4xl md:text-6xl font-black text-white leading-tight mb-6">
+              Lasañas artesanales
+              <br />
+              <span className="text-orange-500">para tu negocio</span>
+            </h1>
+            <p className="text-zinc-400 text-lg md:text-xl max-w-2xl mx-auto mb-10 leading-relaxed">
+              En <strong className="text-white">Doña Any</strong> elaboramos lasañas con ingredientes
+              de calidad y las distribuimos directamente a supermercados, restaurantes y tiendas en
+              todo Chile.
             </p>
-            <div className="flex items-end justify-between mt-2">
-              <p className="text-[10px] text-zinc-600">CLP con IVA / {data?.label}</p>
-              <Sparkline data={spark.revenue} color="#f97316" />
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Link
+                href="/login"
+                className="inline-flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-400 transition-colors text-white font-bold px-8 py-3.5 rounded-2xl text-base"
+              >
+                <LogIn className="w-5 h-5" />
+                Portal de clientes
+              </Link>
+              <a
+                href="#contacto"
+                className="inline-flex items-center justify-center gap-2 bg-zinc-800 hover:bg-zinc-700 transition-colors text-zinc-200 font-semibold px-8 py-3.5 rounded-2xl text-base"
+              >
+                Quiero distribuir
+              </a>
             </div>
           </div>
+        </section>
 
-          {/* Despachos */}
-          <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-5 hover:border-blue-500/30 transition-all">
-            <div className="p-2 bg-blue-500/10 rounded-xl w-fit mb-3">
-              <Truck className="w-4 h-4 text-blue-400" />
-            </div>
-            <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Despachos</p>
-            <p className="text-2xl font-black text-white">{data?.despachos ?? "—"}</p>
-            <div className="flex items-end justify-between mt-2">
-              <p className="text-[10px] text-zinc-600">{data?.label}</p>
-              <Sparkline data={spark.dispatches} color="#60a5fa" />
-            </div>
-          </div>
-
-          {/* Clientes activos */}
-          <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-5 hover:border-emerald-500/30 transition-all">
-            <div className="p-2 bg-emerald-500/10 rounded-xl w-fit mb-3">
-              <Users className="w-4 h-4 text-emerald-400" />
-            </div>
-            <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Clientes activos</p>
-            <p className="text-2xl font-black text-white">{data?.clientesActivos ?? "—"}</p>
-            <div className="flex items-end justify-between mt-2">
-              <p className="text-[10px] text-zinc-600">de {data?.clientesTotal ?? "—"} totales</p>
-              <Sparkline data={spark.clients} color="#34d399" />
-            </div>
-          </div>
-
-          {/* Mermas */}
-          <div className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-5 hover:border-red-500/30 transition-all">
-            <div className="p-2 bg-red-500/10 rounded-xl w-fit mb-3">
-              <AlertTriangle className="w-4 h-4 text-red-400" />
-            </div>
-            <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">Mermas</p>
-            <p className="text-2xl font-black text-white">{data?.mermas ?? "—"}</p>
-            <div className="flex items-end justify-between mt-2">
-              <p className="text-[10px] text-zinc-600">{data?.label}</p>
-              <Sparkline data={spark.mermas} color="#f87171" />
-            </div>
-          </div>
-        </div>
-
-        {/* Chart + sidebar */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
-          <div className="lg:col-span-2">
-            <DashboardChart data={data?.chartData ?? []} />
-          </div>
-
-          {/* Quick actions + alerts */}
-          <div className="space-y-4">
-            {solicitudes.length > 0 && (
-              <div className="bg-orange-500/10 border border-orange-500/20 rounded-2xl p-4 space-y-3">
-                <div className="flex items-center gap-2">
-                  <ShoppingCart className="w-4 h-4 text-orange-400" />
-                  <span className="text-sm font-bold text-orange-400">
-                    {solicitudes.length} pedido{solicitudes.length > 1 ? "s" : ""} pendiente{solicitudes.length > 1 ? "s" : ""}
-                  </span>
-                </div>
-                {solicitudes.map((s: { id: string; tienda: string; cantidad: number; fechaEntrega: Date; nota: string | null; responsable: string | null }) => (
-                  <div key={s.id} className="bg-black/30 rounded-xl p-3 text-xs space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="font-bold text-white">{s.tienda}</span>
-                      <span className="text-orange-400 font-bold">{s.cantidad} unid.</span>
-                    </div>
-                    {s.responsable && (
-                      <p className="text-zinc-500 flex items-center gap-1">
-                        <Users className="w-3 h-3 shrink-0" />
-                        <span className="text-zinc-300 font-medium">{s.responsable}</span>
-                      </p>
-                    )}
-                    <p className="text-zinc-500">
-                      Entrega: <span className="text-zinc-300">
-                        {new Date(s.fechaEntrega).toLocaleDateString("es-CL", { weekday: "long", day: "numeric", month: "short" })}
-                      </span>
-                    </p>
-                    {s.nota && <p className="text-zinc-600 italic">"{s.nota}"</p>}
-                    <SolicitudActions id={s.id} />
-                  </div>
-                ))}
-              </div>
-            )}
-            {data && data.guiasPendientes > 0 && (
-              <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4">
-                <div className="flex items-center gap-2 mb-1">
-                  <FileText className="w-4 h-4 text-amber-400" />
-                  <span className="text-sm font-bold text-amber-400">Guías pendientes</span>
-                </div>
-                <p className="text-xs text-zinc-400 mb-3">
-                  {data.guiasPendientes} despacho{data.guiasPendientes > 1 ? "s" : ""} sin guía generada.
-                </p>
-                <Link href="/guias" className="text-xs font-bold text-amber-400 hover:text-amber-300 flex items-center gap-1">
-                  Ir a Guías <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-            )}
-            <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
-              <p className="px-5 py-3 text-xs font-bold uppercase tracking-widest text-zinc-600 border-b border-zinc-800">
-                Acciones rápidas
+        {/* Por qué elegirnos */}
+        <section className="py-20 px-6 border-t border-zinc-800/50 relative z-10">
+          <div className="max-w-6xl mx-auto">
+            <div className="text-center mb-14">
+              <h2 className="text-3xl font-black text-white mb-3">
+                ¿Por qué elegir Doña Any?
+              </h2>
+              <p className="text-zinc-500 max-w-xl mx-auto">
+                Trabajamos con supermercados y negocios en todo Chile para garantizar producto fresco,
+                despacho oportuno y control total de cada pedido.
               </p>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-5">
               {[
-                { label: "Nuevo despacho",  href: "/envios/nuevo", color: "text-orange-400" },
-                { label: "Registrar merma", href: "/mermas",       color: "text-red-400" },
-                { label: "Ver clientes",    href: "/clientes",     color: "text-emerald-400" },
-                { label: "Ver guías",       href: "/guias",        color: "text-blue-400" },
+                {
+                  icon: ChefHat,
+                  color: "text-orange-400",
+                  bg: "bg-orange-500/10",
+                  title: "Elaboración artesanal",
+                  desc: "Recetas propias con ingredientes frescos, sin conservantes artificiales.",
+                },
+                {
+                  icon: Truck,
+                  color: "text-blue-400",
+                  bg: "bg-blue-500/10",
+                  title: "Despacho directo",
+                  desc: "Distribución puntual a tu local con seguimiento de cada envío.",
+                },
+                {
+                  icon: Package,
+                  color: "text-emerald-400",
+                  bg: "bg-emerald-500/10",
+                  title: "Variedad de productos",
+                  desc: "Lasañas de carne, pollo, vegetariana y 4 quesos. Tamaños para todo negocio.",
+                },
+                {
+                  icon: ShieldCheck,
+                  color: "text-purple-400",
+                  bg: "bg-purple-500/10",
+                  title: "Control de calidad",
+                  desc: "Cada lote es revisado antes del despacho para garantizar frescura.",
+                },
               ].map((item) => (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className="flex items-center justify-between px-5 py-3 hover:bg-zinc-800/30 transition-colors border-b border-zinc-800/50 last:border-0"
+                <div
+                  key={item.title}
+                  className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6 hover:border-zinc-700 transition-colors"
                 >
-                  <span className={`text-sm font-medium ${item.color}`}>{item.label}</span>
-                  <ArrowRight className="w-3.5 h-3.5 text-zinc-600" />
-                </Link>
+                  <div className={`${item.bg} w-11 h-11 rounded-xl flex items-center justify-center mb-4`}>
+                    <item.icon className={`w-5 h-5 ${item.color}`} />
+                  </div>
+                  <h3 className="font-bold text-white mb-2">{item.title}</h3>
+                  <p className="text-zinc-500 text-sm leading-relaxed">{item.desc}</p>
+                </div>
               ))}
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Ranking + Recent dispatches */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <ClientRanking clients={data?.rankingData ?? []} />
-
-          {/* Recent dispatches */}
-          <div className="bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-              <h2 className="font-semibold text-sm text-white flex items-center gap-2">
-                <Clock className="w-4 h-4 text-zinc-500" />
-                Últimos Despachos
-              </h2>
-              <Link href="/guias" className="text-xs text-orange-500 hover:text-orange-400 flex items-center gap-1">
-                Ver todos <ArrowRight className="w-3 h-3" />
-              </Link>
+        {/* Portal de clientes */}
+        <section className="py-20 px-6 border-t border-zinc-800/50 relative z-10">
+          <div className="max-w-6xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+              <div>
+                <div className="inline-flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold px-3 py-1 rounded-full mb-5 uppercase tracking-wider">
+                  <Users className="w-3 h-3" />
+                  Clientes B2B
+                </div>
+                <h2 className="text-3xl font-black text-white mb-5">
+                  Distribuimos a los mejores negocios del país
+                </h2>
+                <p className="text-zinc-400 leading-relaxed mb-6">
+                  Supermercados, cadenas de tiendas de conveniencia y restaurantes confían en Doña Any
+                  para mantener sus góndolas y menús abastecidos con lasañas de calidad consistente.
+                </p>
+                <ul className="space-y-3">
+                  {[
+                    "Pedidos mínimos accesibles para todo tamaño de negocio",
+                    "Facturación y guías de despacho en línea",
+                    "Historial de compras y liquidaciones en tu portal",
+                    "Atención personalizada para cada cliente",
+                  ].map((item) => (
+                    <li key={item} className="flex items-start gap-3 text-sm text-zinc-300">
+                      <Star className="w-4 h-4 text-orange-400 shrink-0 mt-0.5" />
+                      {item}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+              <div className="bg-zinc-900/60 border border-zinc-800 rounded-3xl p-8">
+                <p className="text-zinc-500 text-xs uppercase tracking-widest font-semibold mb-6">
+                  Portal exclusivo para clientes
+                </p>
+                <div className="space-y-4 mb-8">
+                  {[
+                    { icon: Package, label: "Consulta tus despachos en tiempo real" },
+                    { icon: Truck, label: "Revisa guías y confirmaciones de entrega" },
+                    { icon: Users, label: "Gestiona tus pedidos y liquidaciones" },
+                  ].map((item) => (
+                    <div key={item.label} className="flex items-center gap-3">
+                      <div className="w-9 h-9 bg-orange-500/10 rounded-xl flex items-center justify-center shrink-0">
+                        <item.icon className="w-4 h-4 text-orange-400" />
+                      </div>
+                      <span className="text-sm text-zinc-300">{item.label}</span>
+                    </div>
+                  ))}
+                </div>
+                <Link
+                  href="/login"
+                  className="w-full flex items-center justify-center gap-2 bg-orange-500 hover:bg-orange-400 transition-colors text-white font-bold py-3.5 rounded-2xl text-sm"
+                >
+                  <LogIn className="w-4 h-4" />
+                  Ingresar al portal
+                </Link>
+              </div>
             </div>
-            <div className="divide-y divide-zinc-800/50">
-              {(!data || data.recentEnvios.length === 0) && (
-                <p className="text-zinc-600 text-sm text-center py-10">Sin despachos aún</p>
-              )}
-              {data?.recentEnvios.map((envio: any) => {
-                const revenue = envio.detalles.reduce((s: number, d: any) =>
-                  s + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0);
-                const items = envio.detalles.map((d: any) => `${d.cantidad}× ${d.producto.nombre}`).join(", ");
-                return (
-                  <div key={envio.id} className="flex items-center gap-4 px-6 py-3.5 hover:bg-zinc-800/20 transition-colors">
-                    <div className={`w-2 h-2 rounded-full shrink-0 ${envio.guiaDespacho ? "bg-emerald-500" : "bg-amber-500"}`} />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-white truncate">{envio.cliente.razonSocial}</p>
-                      <p className="text-xs text-zinc-500 truncate">{items}</p>
-                    </div>
-                    <div className="text-right shrink-0">
-                      <p className="text-sm font-bold text-orange-400">{fmt(revenue)}</p>
-                      <p className="text-[10px] text-zinc-600">
-                        {new Date(envio.fecha).toLocaleDateString("es-CL", { day: "2-digit", month: "short" })}
-                      </p>
-                    </div>
+          </div>
+        </section>
+
+        {/* Contacto */}
+        <section id="contacto" className="py-20 px-6 border-t border-zinc-800/50 relative z-10">
+          <div className="max-w-3xl mx-auto text-center">
+            <h2 className="text-3xl font-black text-white mb-4">¿Quieres vender Doña Any?</h2>
+            <p className="text-zinc-400 mb-10">
+              Contáctanos y un ejecutivo se comunicará contigo para presentarte nuestro catálogo y
+              condiciones de distribución.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+              {[
+                { icon: Phone, label: "Teléfono", value: "Escríbenos para más info" },
+                { icon: Mail, label: "Email", value: "contacto@donnaany.com" },
+                { icon: MapPin, label: "Cobertura", value: "Todo Chile" },
+              ].map((item) => (
+                <div
+                  key={item.label}
+                  className="bg-zinc-900/60 border border-zinc-800 rounded-2xl p-6"
+                >
+                  <div className="w-10 h-10 bg-orange-500/10 rounded-xl flex items-center justify-center mx-auto mb-3">
+                    <item.icon className="w-5 h-5 text-orange-400" />
                   </div>
-                );
-              })}
+                  <p className="text-xs text-zinc-500 uppercase tracking-wider mb-1">{item.label}</p>
+                  <p className="text-sm text-zinc-300 font-medium">{item.value}</p>
+                </div>
+              ))}
             </div>
           </div>
-        </div>
+        </section>
 
-        {/* Time Market — comparativo de tiendas */}
-        {tmData.some((s) => s.despachos > 0) && (
-          <div className="mt-6 bg-zinc-900/50 border border-zinc-800 rounded-2xl overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-4 border-b border-zinc-800">
-              <h2 className="font-semibold text-sm text-white flex items-center gap-2">
-                <Truck className="w-4 h-4 text-blue-400" />
-                Time Market — Comparativo de Tiendas
-                <span className="text-zinc-600 font-normal text-xs ml-1">este mes</span>
-              </h2>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="text-left text-[11px] uppercase tracking-widest text-zinc-500 border-b border-zinc-800">
-                    <th className="px-6 py-3">Tienda</th>
-                    <th className="px-4 py-3 text-right">Despachos</th>
-                    <th className="px-4 py-3 text-right">Unidades</th>
-                    <th className="px-4 py-3 text-right">Pendiente</th>
-                    <th className="px-4 py-3 text-right">Mermas</th>
-                    <th className="px-6 py-3">Actividad</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {(() => {
-                    const maxUnidades = Math.max(...tmData.map((s) => s.unidades), 1);
-                    return tmData
-                      .sort((a, b) => b.unidades - a.unidades)
-                      .map((store) => (
-                        <tr key={store.tienda} className="border-b border-zinc-800/40 hover:bg-zinc-800/20 transition-colors">
-                          <td className="px-6 py-3 font-medium text-white">{store.tienda}</td>
-                          <td className="px-4 py-3 text-right text-zinc-400">{store.despachos}</td>
-                          <td className="px-4 py-3 text-right font-bold text-white">{store.unidades}</td>
-                          <td className={`px-4 py-3 text-right font-bold text-xs ${store.pendiente > 0 ? "text-red-400" : "text-zinc-600"}`}>
-                            {store.pendiente > 0 ? fmt(store.pendiente) : "—"}
-                          </td>
-                          <td className={`px-4 py-3 text-right text-xs ${store.mermas > 0 ? "text-amber-400 font-bold" : "text-zinc-600"}`}>
-                            {store.mermas > 0 ? `-${store.mermas}` : "—"}
-                          </td>
-                          <td className="px-6 py-3">
-                            <div className="flex items-center gap-2">
-                              <div className="flex-1 bg-zinc-800 rounded-full h-1.5 max-w-[120px]">
-                                <div
-                                  className="h-1.5 rounded-full bg-blue-500"
-                                  style={{ width: `${(store.unidades / maxUnidades) * 100}%` }}
-                                />
-                              </div>
-                              <span className="text-[10px] text-zinc-600">{Math.round((store.unidades / maxUnidades) * 100)}%</span>
-                            </div>
-                          </td>
-                        </tr>
-                      ));
-                  })()}
-                </tbody>
-              </table>
-            </div>
+        {/* Footer */}
+        <footer className="border-t border-zinc-800/50 py-8 px-6 relative z-10">
+          <div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center justify-between gap-4">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logo.png" alt="Doña Any" className="h-8 w-auto" />
+            <p className="text-zinc-600 text-sm text-center">
+              © {new Date().getFullYear()} Doña Any — Fábrica y Distribución de Lasañas · Chile
+            </p>
+            <Link href="/login" className="text-zinc-500 hover:text-orange-400 transition-colors text-sm">
+              Acceso clientes
+            </Link>
           </div>
-        )}
+        </footer>
       </div>
-    </div>
+    </>
   );
 }

@@ -14,8 +14,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Doña Any — Sistema de Gestión",
-  description: "Sistema B2B de gestión de despachos y ventas",
+  title: {
+    default: "Doña Any | Fábrica y Distribución de Lasañas en Chile",
+    template: "%s | Doña Any",
+  },
+  description:
+    "Doña Any — fábrica chilena de lasañas artesanales con distribución B2B a supermercados, restaurantes y negocios en todo Chile.",
+  metadataBase: new URL("https://donnaany.com"),
 };
 
 export default function RootLayout({
