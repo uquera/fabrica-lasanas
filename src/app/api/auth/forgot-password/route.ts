@@ -9,15 +9,15 @@ const USER_EMAILS: Record<string, string> = {
   uquera:          "donna.any.cl@gmail.com",
   susana:          "donna.any.cl@gmail.com",
   timemarket:      "donna.any.cl@gmail.com",
-  "tm.vivar":      "donna.any.cl@gmail.com",
-  "tm.terranova":  "donna.any.cl@gmail.com",
-  "tm.chipana":    "donna.any.cl@gmail.com",
-  "tm.playabrava": "donna.any.cl@gmail.com",
-  "tm.anibalpinto":"donna.any.cl@gmail.com",
-  "tm.tarapaca":   "donna.any.cl@gmail.com",
-  "tm.losmolles":  "donna.any.cl@gmail.com",
-  "tm.bilbao2":    "donna.any.cl@gmail.com",
-  "tm.peninsula":  "donna.any.cl@gmail.com",
+  "tm.vivar":      "vivar@timemarket.cl",
+  "tm.terranova":  "terranova@timemarket.cl",
+  "tm.chipana":    "chipana@timemarket.cl",
+  "tm.playabrava": "playabrava@timemarket.cl",
+  "tm.anibalpinto":"anibalpinto@timemarket.cl",
+  "tm.tarapaca":   "tarapaca@timemarket.cl",
+  "tm.losmolles":  "losmolles@timemarket.cl",
+  "tm.bilbao2":    "bilbao2@timemarket.cl",
+  "tm.peninsula":  "peninsula@timemarket.cl",
 };
 
 export async function POST(req: NextRequest) {
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
 
     // Generar token seguro
     const token = randomBytes(32).toString("hex");
-    const expiresAt = new Date(Date.now() + 60 * 60 * 1000); // +1 hora
+    const expiresAt = new Date(Date.now() + 30 * 60 * 1000); // +30 minutos
 
     await prisma.passwordResetToken.create({
       data: { token, username, expiresAt },
@@ -63,7 +63,7 @@ export async function POST(req: NextRequest) {
     await sendMail({
       to: email,
       subject: "Recuperación de contraseña — Doña Any",
-      text: `Hola ${username},\n\nRecibiste este email porque solicitaste restablecer tu contraseña.\n\nHaz click en el siguiente enlace para crear una nueva contraseña (válido por 1 hora):\n\n${resetLink}\n\nSi no solicitaste esto, ignora este email.\n\nDoña Any Management`,
+      text: `Hola ${username},\n\nRecibiste este email porque solicitaste restablecer tu contraseña.\n\nHaz click en el siguiente enlace para crear una nueva contraseña (válido por 30 minutos):\n\n${resetLink}\n\nSi no solicitaste esto, ignora este email.\n\nDoña Any Management`,
     });
 
     return NextResponse.json({ ok: true });
