@@ -50,19 +50,19 @@ export default function DashboardDateFilter() {
   }, []);
 
   const applyPreset = useCallback((id: string) => {
-    router.push(`/?range=${id}`);
+    router.push(`/dashboard?range=${id}`);
   }, [router]);
 
   const applyCustom = useCallback(() => {
     if (!from || !to) return;
-    router.push(`/?from=${from}&to=${to}`);
+    router.push(`/dashboard?from=${from}&to=${to}`);
     setOpen(false);
   }, [from, to, router]);
 
   const clearCustom = useCallback(() => {
     setFrom("");
     setTo(todayStr());
-    router.push(`/?range=month`);
+    router.push(`/dashboard?range=month`);
   }, [router]);
 
   const activePreset = PRESETS.find((p) => p.id === range);
