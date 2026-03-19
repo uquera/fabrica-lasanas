@@ -4,6 +4,7 @@ import { useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { Loader2, Lock, User } from "lucide-react";
+import Link from "next/link";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -139,6 +140,12 @@ export default function LoginPage() {
                 {error}
               </p>
             )}
+
+            <div className="flex justify-end mt-2">
+              <Link href="/forgot-password" className="text-xs text-zinc-500 hover:text-orange-400 transition-colors">
+                ¿Olvidaste tu contraseña?
+              </Link>
+            </div>
 
             <button
               type="submit"

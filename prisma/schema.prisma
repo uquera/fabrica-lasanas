@@ -89,3 +89,23 @@ model Merma {
   cliente    Cliente  @relation(fields: [clienteId], references: [id])
   producto   Producto @relation(fields: [productoId], references: [id])
 }
+
+model Usuario {
+  id           String               @id @default(cuid())
+  username     String               @unique
+  email        String
+  passwordHash String?
+  createdAt    DateTime             @default(now())
+  updatedAt    DateTime             @updatedAt
+  resetTokens  PasswordResetToken[]
+}
+
+model PasswordResetToken {
+  id        String    @id @default(cuid())
+  token     String    @unique
+  username  String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+  usuario   Usuario   @relation(fields: [username], references: [username])
+}
