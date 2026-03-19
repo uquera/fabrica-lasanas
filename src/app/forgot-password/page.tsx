@@ -61,20 +61,20 @@ export default function ForgotPasswordPage() {
               <p className="text-sm text-zinc-400">
                 Si el usuario <strong>{username}</strong> existe, hemos enviado un enlace para restablecer la contraseña.
               </p>
-              <Link 
+              <a 
                 href="/login"
-                className="block w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition-all mt-6"
+                className="block w-full bg-zinc-800 hover:bg-zinc-700 text-white font-bold py-3 rounded-xl transition-all mt-6 text-center"
               >
                 Volver al inicio de sesión
-              </Link>
+              </a>
             </div>
           ) : (
             <>
               <div className="mb-6">
-                <Link href="/login" className="inline-flex items-center text-xs text-zinc-500 hover:text-orange-400 transition-colors mb-4 group">
+                <a href="/login" className="inline-flex items-center text-xs text-zinc-500 hover:text-orange-400 transition-colors mb-4 group">
                   <ArrowLeft className="w-3 h-3 mr-1 group-hover:-translate-x-1 transition-transform" />
                   Volver
-                </Link>
+                </a>
                 <h2 className="text-xl font-bold">Recuperar contraseña</h2>
                 <p className="text-xs text-zinc-400 mt-1">Ingresa tu usuario para recibir un enlace de recuperación.</p>
               </div>

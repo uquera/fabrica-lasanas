@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import { Sidebar } from "./Sidebar";
 import { ToastProvider } from "./Toast";
 
-const NO_SIDEBAR_PATHS = ["/login", "/portal"];
+const NO_SIDEBAR_PATHS = ["/login", "/portal", "/forgot-password", "/reset-password"];
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

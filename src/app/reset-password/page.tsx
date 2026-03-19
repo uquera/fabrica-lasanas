@@ -71,12 +71,12 @@ function ResetPasswordForm() {
           <p className="text-sm text-zinc-400">
             Tu contraseña ha sido restablecida exitosamente. Ya puedes iniciar sesión con tu nueva clave.
           </p>
-          <Link 
+          <a 
             href="/login"
-            className="block w-full bg-orange-500 hover:bg-orange-600 text-black font-bold py-3 rounded-xl transition-all mt-6"
+            className="block w-full bg-orange-500 hover:bg-orange-600 text-black font-bold py-3 rounded-xl transition-all mt-6 text-center"
           >
             Ir a Iniciar Sesión
-          </Link>
+          </a>
         </div>
       ) : (
         <>
