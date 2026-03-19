@@ -16,12 +16,16 @@ export default auth((req) => {
 
   const path = req.nextUrl.pathname;
   const isLoginPage = path === "/login";
+  const isAuthPage = path === "/forgot-password" || path === "/reset-password";
   const isApiAuth = path.startsWith("/api/auth");
   const isApiGuia = path.startsWith("/api/guia") || path.startsWith("/api/liquidacion") || path.startsWith("/api/comprobante");
   const isPortalPage = path === "/portal";
 
   // Always allow auth and PDF API routes
   if (isApiAuth || isApiGuia) return NextResponse.next();
+
+  // Páginas de recuperación de contraseña (acceso sin login)
+  if (isAuthPage) return NextResponse.next();
 
   // Login page
   if (isLoginPage) {
