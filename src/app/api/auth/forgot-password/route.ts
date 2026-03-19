@@ -6,11 +6,11 @@ import { sendMail } from "@/lib/mail";
 // Mapeo de username → email
 const USER_EMAILS: Record<string, string> = {
   admin:           "donna.any.cl@gmail.com",
-  uquera:          "donna.any.cl@gmail.com",
+  uquera:          "uquera.uq@gmail.com",
   susana:          "donna.any.cl@gmail.com",
-  timemarket:      "donna.any.cl@gmail.com",
+  timemarket:      "elisa.martinez@timemarket.cl",
   "tm.vivar":      "vivar@timemarket.cl",
-  "tm.terranova":  "terranova@timemarket.cl",
+  "tm.terranova":  "bilbao@timemarket.cl",
   "tm.chipana":    "chipana@timemarket.cl",
   "tm.playabrava": "playabrava@timemarket.cl",
   "tm.anibalpinto":"anibalpinto@timemarket.cl",
