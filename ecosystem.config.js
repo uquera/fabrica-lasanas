@@ -7,10 +7,11 @@ module.exports = {
       name: "fabrica-lasanas",
       // Next.js standalone mode usa server.js directamente
       script: ".next/standalone/server.js",
+      exec_mode: "fork",
       instances: 1,
       autorestart: true,
       watch: false,
-      max_memory_restart: "512M",
+      max_memory_restart: "1500M",
       env: {
         NODE_ENV: "production",
         PORT: 3000,
