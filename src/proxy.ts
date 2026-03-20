@@ -31,7 +31,7 @@ export default auth((req) => {
   // Login page
   if (isLoginPage) {
     if (isLoggedIn) {
-      return NextResponse.redirect(new URL(isPortalUser ? "/portal" : "/", req.url));
+      return NextResponse.redirect(new URL(isPortalUser ? "/portal" : "/dashboard", req.url));
     }
     return NextResponse.next();
   }
@@ -48,7 +48,7 @@ export default auth((req) => {
 
   // Regular users cannot access /portal
   if (!isPortalUser && isPortalPage) {
-    return NextResponse.redirect(new URL("/", req.url));
+    return NextResponse.redirect(new URL("/dashboard", req.url));
   }
 
   return NextResponse.next();
