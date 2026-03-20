@@ -104,8 +104,13 @@ const jsonLd = {
 const WHATSAPP_URL = "https://wa.me/56958315506?text=Hola%2C%20me%20interesa%20distribuir%20las%20lasa%C3%B1as%20Do%C3%B1a%20Any%20en%20mi%20local.";
 
 export default async function LandingPage() {
-  const session = await auth();
-  if (session) redirect("/dashboard");
+  try {
+    const session = await auth();
+    if (session) redirect("/dashboard");
+  } catch {
+    // auth() puede fallar en contextos donde el host no está disponible.
+    // La landing es pública — si falla, simplemente la mostramos.
+  }
 
   return (
     <>
