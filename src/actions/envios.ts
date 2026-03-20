@@ -93,10 +93,16 @@ export async function enviarGuia(envioId: string) {
     const result = results[0];
     revalidatePath("/guias");
     revalidatePath("/");
-    return { success: true, emailStatus: result?.status, emailError: result?.error };
-  } catch (error) {
+    if (!result) return { success: false, error: "No se encontró el envío." };
+    // PDF/folio always generated; email may or may not have sent
+    return {
+      success: true,
+      emailStatus: result.status,           // "sent" | "no_email" | "error"
+      emailError: result.error ?? null,
+    };
+  } catch (error: any) {
     console.error("Error sending guia:", error);
-    return { success: false, error: "Error al enviar la guía." };
+    return { success: false, error: error?.message ?? "Error al generar la guía." };
   }
 }
 

@@ -2,37 +2,60 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Send, CheckCircle, AlertCircle } from "lucide-react";
+import { Loader2, Send, CheckCircle, AlertCircle, FileText } from "lucide-react";
 import { enviarGuia } from "@/actions/envios";
 
+type Status = "idle" | "loading" | "sent" | "pdf_only" | "error";
+
 export default function GenerarGuiaButton({ envioId }: { envioId: string }) {
-  const [status, setStatus] = useState<"idle" | "loading" | "ok" | "error">("idle");
-  const [error, setError] = useState<string | null>(null);
+  const [status, setStatus] = useState<Status>("idle");
+  const [message, setMessage] = useState<string | null>(null);
   const router = useRouter();
 
   async function handle() {
     setStatus("loading");
-    const result = await enviarGuia(envioId) as any;
-    if (result.success) {
-      setStatus("ok");
+    try {
+      const result = await enviarGuia(envioId) as any;
+      if (!result.success) {
+        setStatus("error");
+        setMessage(result.error ?? "Error desconocido");
+        return;
+      }
       router.refresh();
-    } else {
+      if (result.emailStatus === "sent") {
+        setStatus("sent");
+      } else if (result.emailStatus === "no_email") {
+        setStatus("pdf_only");
+        setMessage("Guía generada (sin email registrado)");
+      } else {
+        // email error but PDF was generated
+        setStatus("pdf_only");
+        setMessage(result.emailError ?? "Guía generada, email no enviado");
+      }
+    } catch (err: any) {
       setStatus("error");
-      setError(result.error ?? "Error desconocido");
+      setMessage(err?.message ?? "Error inesperado");
     }
   }
 
-  if (status === "ok") {
+  if (status === "sent") {
     return (
       <span className="flex items-center gap-1.5 text-xs text-emerald-400 font-bold">
         <CheckCircle className="w-3.5 h-3.5" /> Guía enviada
       </span>
     );
   }
+  if (status === "pdf_only") {
+    return (
+      <span className="flex items-center gap-1.5 text-xs text-amber-400 font-bold" title={message ?? ""}>
+        <FileText className="w-3.5 h-3.5" /> PDF generado
+      </span>
+    );
+  }
   if (status === "error") {
     return (
-      <span className="flex items-center gap-1.5 text-xs text-red-400">
-        <AlertCircle className="w-3.5 h-3.5" /> {error}
+      <span className="flex items-center gap-1.5 text-xs text-red-400" title={message ?? ""}>
+        <AlertCircle className="w-3.5 h-3.5" /> {message ?? "Error"}
       </span>
     );
   }
