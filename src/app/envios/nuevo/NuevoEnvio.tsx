@@ -343,6 +343,7 @@ export default function NuevoEnvio({ clientes, productos }: { clientes: any[]; p
                   <div className="flex-1 min-w-0">
                     <p className="text-sm font-medium text-white truncate">{r.razonSocial}</p>
                     {r.error && <p className="text-xs text-red-400">{r.error}</p>}
+                    {r.emailError && <p className="text-xs text-red-400 truncate">{r.emailError}</p>}
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
                     {r.envioId && (
@@ -354,7 +355,11 @@ export default function NuevoEnvio({ clientes, productos }: { clientes: any[]; p
                     {r.emailStatus === "sending" && <Loader2 className="w-3.5 h-3.5 animate-spin text-zinc-500" />}
                     {r.emailStatus === "sent"    && <span className="text-xs text-emerald-400 flex items-center gap-1"><CheckCircle className="w-3 h-3" /> Enviado</span>}
                     {r.emailStatus === "no_email"&& <span className="text-xs text-zinc-600">Sin email</span>}
-                    {r.emailStatus === "error"   && <span className="text-xs text-red-400 flex items-center gap-1"><AlertCircle className="w-3 h-3" /> Error</span>}
+                    {r.emailStatus === "error"   && (
+                      <span className="text-xs text-red-400 flex items-center gap-1" title={r.emailError ?? ""}>
+                        <AlertCircle className="w-3 h-3" /> Error
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}

@@ -34,10 +34,8 @@ export async function sendMail({ to, subject, text, attachments }: {
       attachments,
     });
     return { success: true };
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error sending email:", error);
-    return { success: false, error: "Error al enviar el correo." };
-  } finally {
-    transporter.close();
+    return { success: false, error: error?.message ?? "Error al enviar el correo." };
   }
 }
