@@ -307,7 +307,7 @@ export default function LandingPage() {
                 <div className="bg-zinc-900/60 border border-zinc-800 rounded-3xl overflow-hidden">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
-                    src="/lasana-producto.jpg"
+                    src="/lasana-producto.png"
                     alt="Lasaña Individual Tradicional Doña Any"
                     className="w-full object-cover"
                   />
