@@ -304,13 +304,14 @@ export default function LandingPage() {
 
               {/* Visual del producto */}
               <div className="relative">
-                <div className="bg-gradient-to-br from-orange-500/10 to-zinc-900/60 border border-zinc-800 rounded-3xl p-10 flex flex-col items-center justify-center text-center min-h-[320px]">
-                  <div className="w-24 h-24 bg-orange-500/15 rounded-full flex items-center justify-center mb-5">
-                    <ChefHat className="w-12 h-12 text-orange-400" />
-                  </div>
-                  <p className="text-white font-bold text-xl mb-1">Lasaña Individual</p>
-                  <p className="text-zinc-500 text-sm mb-6">Tradicional · Refrigerada</p>
-                  <div className="flex gap-3 flex-wrap justify-center">
+                <div className="bg-zinc-900/60 border border-zinc-800 rounded-3xl overflow-hidden">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src="/lasana-producto.jpg"
+                    alt="Lasaña Individual Tradicional Doña Any"
+                    className="w-full object-cover"
+                  />
+                  <div className="px-6 py-4 flex gap-2 flex-wrap border-t border-zinc-800">
                     {["Pasta fresca", "Carne", "Bechamel", "Sin conservantes"].map((tag) => (
                       <span
                         key={tag}
