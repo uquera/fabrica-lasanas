@@ -344,43 +344,98 @@ export default function LandingPage() {
               </p>
             </div>
 
-            {/* Timemarket card */}
-            <div className="max-w-2xl mx-auto">
-              <div className="bg-zinc-900/60 border border-zinc-700 rounded-3xl p-8 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-40 h-40 bg-orange-500/5 rounded-full blur-[60px]" />
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+
+              {/* Timemarket */}
+              <div className="lg:col-span-1 bg-zinc-900/60 border border-zinc-700 rounded-3xl p-7 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-orange-500/5 rounded-full blur-[50px]" />
                 <div className="relative z-10">
-                  <div className="flex items-start gap-4 mb-5">
-                    <div className="w-14 h-14 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center justify-center shrink-0">
-                      <Store className="w-7 h-7 text-orange-400" />
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-12 h-12 bg-orange-500/10 border border-orange-500/20 rounded-2xl flex items-center justify-center shrink-0">
+                      <Store className="w-6 h-6 text-orange-400" />
                     </div>
                     <div>
-                      <h3 className="font-black text-white text-xl">Timemarket</h3>
-                      <p className="text-zinc-500 text-sm">Cadena de tiendas de conveniencia · Iquique</p>
+                      <h3 className="font-black text-white text-lg">Timemarket</h3>
+                      <p className="text-zinc-500 text-xs">Tiendas de conveniencia · Iquique</p>
                     </div>
                   </div>
-                  <p className="text-zinc-300 leading-relaxed mb-6">
-                    Presentes en las <strong className="text-white">9 tiendas</strong> de la cadena
-                    en toda la ciudad de Iquique. Doña Any es parte del catálogo permanente de
-                    productos refrigerados de Timemarket, con reposición regular en cada sucursal.
+                  <p className="text-zinc-400 text-sm leading-relaxed mb-5">
+                    Presentes en las <strong className="text-white">9 tiendas</strong> de la cadena en toda la ciudad de Iquique, con reposición regular en cada sucursal.
                   </p>
-                  <div className="flex items-center gap-6 pt-5 border-t border-zinc-800">
+                  <div className="flex items-center gap-4 pt-4 border-t border-zinc-800">
                     <div className="text-center">
-                      <p className="text-3xl font-black text-orange-400">9</p>
-                      <p className="text-xs text-zinc-500 mt-0.5">tiendas activas</p>
+                      <p className="text-2xl font-black text-orange-400">9</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">tiendas</p>
                     </div>
-                    <div className="w-px h-10 bg-zinc-800" />
+                    <div className="w-px h-8 bg-zinc-800" />
                     <div className="text-center">
-                      <p className="text-3xl font-black text-white">100%</p>
-                      <p className="text-xs text-zinc-500 mt-0.5">cobertura en Iquique</p>
-                    </div>
-                    <div className="w-px h-10 bg-zinc-800" />
-                    <div className="text-center">
-                      <p className="text-3xl font-black text-white">Alta</p>
-                      <p className="text-xs text-zinc-500 mt-0.5">rotación probada</p>
+                      <p className="text-2xl font-black text-white">Alta</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">rotación</p>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* Restaurante Déjate Querer */}
+              <div className="bg-zinc-900/60 border border-zinc-800 rounded-3xl p-7 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-blue-500/5 rounded-full blur-[50px]" />
+                <div className="relative z-10">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/20 rounded-2xl flex items-center justify-center shrink-0">
+                      <UtensilsCrossed className="w-6 h-6 text-blue-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-white text-lg">Déjate Querer</h3>
+                      <p className="text-zinc-500 text-xs">Restaurante · Iquique</p>
+                    </div>
+                  </div>
+                  <p className="text-zinc-400 text-sm leading-relaxed mb-5">
+                    Incorporaron la lasaña Doña Any a su menú como plato permanente, aprovechando la calidad consistente y la facilidad de preparación.
+                  </p>
+                  <div className="flex items-center gap-4 pt-4 border-t border-zinc-800">
+                    <div className="text-center">
+                      <p className="text-2xl font-black text-blue-400">Menú</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">permanente</p>
+                    </div>
+                    <div className="w-px h-8 bg-zinc-800" />
+                    <div className="text-center">
+                      <p className="text-2xl font-black text-white">Iquique</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">norte de Chile</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Productos Araguaney */}
+              <div className="bg-zinc-900/60 border border-zinc-800 rounded-3xl p-7 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-[50px]" />
+                <div className="relative z-10">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-12 h-12 bg-emerald-500/10 border border-emerald-500/20 rounded-2xl flex items-center justify-center shrink-0">
+                      <Package className="w-6 h-6 text-emerald-400" />
+                    </div>
+                    <div>
+                      <h3 className="font-black text-white text-lg">Araguaney</h3>
+                      <p className="text-zinc-500 text-xs">Productos alimenticios · Iquique</p>
+                    </div>
+                  </div>
+                  <p className="text-zinc-400 text-sm leading-relaxed mb-5">
+                    Local de productos alimenticios que distribuve lasañas Doña Any con alta rotación en su sección refrigerada.
+                  </p>
+                  <div className="flex items-center gap-4 pt-4 border-t border-zinc-800">
+                    <div className="text-center">
+                      <p className="text-2xl font-black text-emerald-400">Alta</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">rotación</p>
+                    </div>
+                    <div className="w-px h-8 bg-zinc-800" />
+                    <div className="text-center">
+                      <p className="text-2xl font-black text-white">Iquique</p>
+                      <p className="text-xs text-zinc-500 mt-0.5">norte de Chile</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
             </div>
           </div>
         </section>
