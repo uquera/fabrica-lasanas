@@ -106,6 +106,19 @@ export async function enviarGuia(envioId: string) {
   }
 }
 
+export async function deleteEnvio(envioId: string) {
+  try {
+    await prisma.detalleEnvio.deleteMany({ where: { envioId } });
+    await prisma.envio.delete({ where: { id: envioId } });
+    revalidatePath("/guias");
+    revalidatePath("/");
+    return { success: true };
+  } catch (error: any) {
+    console.error("Error deleting envio:", error);
+    return { success: false, error: error?.message ?? "Error al eliminar el envío." };
+  }
+}
+
 export async function getEnviosRecientes() {
   return await prisma.envio.findMany({
     take: 10,

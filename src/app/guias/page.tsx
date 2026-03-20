@@ -2,6 +2,7 @@ import prisma from "@/lib/prisma";
 import Link from "next/link";
 import { ArrowLeft, FileText, CheckCircle2, Clock, Mail, Download } from "lucide-react";
 import GenerarGuiaButton from "@/components/GenerarGuiaButton";
+import EliminarEnvioButton from "@/components/EliminarEnvioButton";
 
 export default async function GuiasPage() {
   const envios = await (prisma.envio as any).findMany({
@@ -122,6 +123,7 @@ export default async function GuiasPage() {
                     <div className="flex items-center gap-3 shrink-0">
                       <p className="text-xs text-zinc-600">{new Date(envio.fecha).toLocaleDateString("es-CL", { day: "2-digit", month: "short", year: "numeric" })}</p>
                       <GenerarGuiaButton envioId={envio.id} />
+                      <EliminarEnvioButton envioId={envio.id} />
                     </div>
                   </div>
                 </div>
