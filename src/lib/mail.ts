@@ -25,6 +25,9 @@ export async function sendMail({ to, subject, text, attachments }: {
     socketTimeout: 30000,
   });
 
+  // Absorb post-send errors so they don't crash the process
+  transporter.on("error", () => {});
+
   try {
     await transporter.sendMail({
       from: `"Doña Any - Guías de Despacho" <${GMAIL_USER}>`,
@@ -37,5 +40,7 @@ export async function sendMail({ to, subject, text, attachments }: {
   } catch (error: any) {
     console.error("Error sending email:", error);
     return { success: false, error: error?.message ?? "Error al enviar el correo." };
+  } finally {
+    try { transporter.close(); } catch (_) {}
   }
 }
