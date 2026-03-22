@@ -48,3 +48,9 @@ next-env.d.ts
 *.db-wal
 /data/
 *.zip
+
+# Archivos de salida de entorno (contienen credenciales)
+env_out.txt
+*_out.txt
+deploy_out.txt
+pm2_logs.txt

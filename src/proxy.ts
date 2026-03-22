@@ -1,5 +1,8 @@
-import { auth } from "@/auth";
+import NextAuth from "next-auth";
+import { authConfig } from "@/auth.config";
 import { NextResponse } from "next/server";
+
+const { auth } = NextAuth(authConfig);
 
 const PORTAL_USERNAMES = [
   process.env.APP_USERNAME_3 ?? "timemarket",
@@ -21,6 +24,7 @@ export default auth((req) => {
   const isApiAuth = path.startsWith("/api/auth");
   const isApiGuia = path.startsWith("/api/guia") || path.startsWith("/api/liquidacion") || path.startsWith("/api/comprobante");
   const isPortalPage = path === "/portal";
+  const isEnviosRoot = path === "/envios";
 
   // Always allow auth and PDF API routes
   if (isApiAuth || isApiGuia) return NextResponse.next();
@@ -39,6 +43,11 @@ export default auth((req) => {
   // Not logged in → login
   if (!isLoggedIn) {
     return NextResponse.redirect(new URL("/login", req.url));
+  }
+
+  // /envios sin subruta → redirigir a /envios/nuevo
+  if (isEnviosRoot) {
+    return NextResponse.redirect(new URL("/envios/nuevo", req.url));
   }
 
   // Portal user can only access /portal
