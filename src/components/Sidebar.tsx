@@ -19,6 +19,9 @@ import {
   ChevronLeft,
   ChevronRight,
   Menu,
+  ClipboardList,
+  ExternalLink,
+  UtensilsCrossed,
 } from "lucide-react";
 
 const navItems = [
@@ -137,6 +140,38 @@ export function Sidebar() {
 
         {/* Footer */}
         <div className="shrink-0 border-t border-zinc-800 p-2 space-y-1">
+          <a
+            href="/api/pos-redirect"
+            target="_blank"
+            rel="noopener noreferrer"
+            title={collapsed ? "POS Restaurante" : undefined}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-orange-400 bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/20 hover:border-orange-500/40 transition-all group relative ${collapsed ? "justify-center" : ""}`}
+          >
+            <UtensilsCrossed size={18} className="shrink-0 text-orange-400" />
+            {!collapsed && <><span className="flex-1">POS Restaurante</span><ExternalLink size={13} className="opacity-50" /></>}
+            {collapsed && (
+              <span className="absolute left-full ml-2 px-2 py-1 bg-zinc-800 text-white text-xs rounded-lg
+                opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity">
+                POS Restaurante
+              </span>
+            )}
+          </a>
+          <a
+            href="/personal"
+            target="_blank"
+            rel="noopener noreferrer"
+            title={collapsed ? "Personal" : undefined}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-amber-400 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/20 hover:border-amber-500/40 transition-all group relative ${collapsed ? "justify-center" : ""}`}
+          >
+            <ClipboardList size={18} className="shrink-0 text-amber-400" />
+            {!collapsed && <><span className="flex-1">Personal</span><ExternalLink size={13} className="opacity-50" /></>}
+            {collapsed && (
+              <span className="absolute left-full ml-2 px-2 py-1 bg-zinc-800 text-white text-xs rounded-lg
+                opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 transition-opacity">
+                Personal
+              </span>
+            )}
+          </a>
           <button
             onClick={async () => { await signOut({ redirect: false }); window.location.href = "/login"; }}
             title={collapsed ? "Cerrar sesión" : undefined}
