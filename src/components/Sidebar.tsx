@@ -22,17 +22,19 @@ import {
   ClipboardList,
   ExternalLink,
   UtensilsCrossed,
+  Sandwich,
 } from "lucide-react";
 
 const navItems = [
-  { label: "Dashboard",      href: "/dashboard",    icon: LayoutDashboard },
-  { label: "Clientes",       href: "/clientes",     icon: Users },
-  { label: "Nuevo Despacho", href: "/envios/nuevo", icon: Truck },
-  { label: "Mermas",         href: "/mermas",       icon: AlertTriangle },
-  { label: "Liquidaciones",  href: "/liquidaciones",icon: DollarSign },
-  { label: "Guías",          href: "/guias",        icon: FileText },
-  { label: "Reportes",       href: "/reportes",     icon: BarChart2 },
-  { label: "Productos",      href: "/productos",    icon: Package },
+  { label: "Dashboard",      href: "/dashboard",     icon: LayoutDashboard },
+  { label: "Clientes",       href: "/clientes",      icon: Users },
+  { label: "Nuevo Despacho", href: "/envios/nuevo",  icon: Truck },
+  { label: "Mermas",         href: "/mermas",        icon: AlertTriangle },
+  { label: "Liquidaciones",  href: "/liquidaciones", icon: DollarSign },
+  { label: "Guías",          href: "/guias",         icon: FileText },
+  { label: "Reportes",       href: "/reportes",      icon: BarChart2 },
+  { label: "Productos",      href: "/productos",     icon: Package },
+  { label: "Leads Sándwich", href: "/sanwich-leads", icon: Sandwich },
 ];
 
 export function Sidebar() {

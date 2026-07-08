@@ -109,3 +109,17 @@ model PasswordResetToken {
   createdAt DateTime  @default(now())
   usuario   Usuario   @relation(fields: [username], references: [username])
 }
+
+// ─── CAMPAÑA SÁNDWICH (estreno nocturno Iquique) ─────────────────────────────
+
+model SanwichLead {
+  id        String   @id @default(cuid())
+  name      String
+  phone     String
+  code      String   @unique
+  reward    String   @default("2x1 en churrascos")
+  redeemed  Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+}

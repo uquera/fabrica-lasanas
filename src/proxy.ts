@@ -21,6 +21,8 @@ export default auth((req) => {
   const isLoginPage = path === "/login";
   const isAuthPage = path === "/forgot-password" || path === "/reset-password";
   const isLandingPage = path === "/landing";
+  // Landing pública de la campaña sándwich (exacto: /sanwich-leads sigue protegido)
+  const isSanwichLanding = path === "/sanwich";
   const isApiAuth = path.startsWith("/api/auth");
   const isApiGuia = path.startsWith("/api/guia") || path.startsWith("/api/liquidacion") || path.startsWith("/api/comprobante");
   const isPortalPage = path === "/portal";
@@ -29,8 +31,8 @@ export default auth((req) => {
   // Always allow auth and PDF API routes
   if (isApiAuth || isApiGuia) return NextResponse.next();
 
-  // Páginas de recuperación de contraseña y landing pública (acceso sin login)
-  if (isAuthPage || isLandingPage) return NextResponse.next();
+  // Páginas de recuperación de contraseña y landings públicas (acceso sin login)
+  if (isAuthPage || isLandingPage || isSanwichLanding) return NextResponse.next();
 
   // Login page
   if (isLoginPage) {
