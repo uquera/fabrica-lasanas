@@ -220,7 +220,7 @@ export function SanwichClient() {
             <div className="reward">
               <div className="lbl">Tu recompensa de estreno</div>
               <div className="big">2x1 en<br />churrascos</div>
-              <div className="fine">lleva dos, paga uno · solo la noche de estreno</div>
+              <div className="fine">lleva dos, paga uno · solo por el mes de estreno</div>
             </div>
           </header>
 
