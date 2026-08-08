@@ -66,12 +66,13 @@ model Envio {
 }
 
 model DetalleEnvio {
-  id         String   @id @default(cuid())
-  envioId    String
-  productoId String
-  cantidad   Int
-  envio      Envio    @relation(fields: [envioId], references: [id])
-  producto   Producto @relation(fields: [productoId], references: [id])
+  id             String   @id @default(cuid())
+  envioId        String
+  productoId     String
+  cantidad       Int
+  precioUnitario Float?   // precio neto congelado al momento del despacho; si es null se usa producto.precioBase
+  envio          Envio    @relation(fields: [envioId], references: [id])
+  producto       Producto @relation(fields: [productoId], references: [id])
 }
 
 model Merma {

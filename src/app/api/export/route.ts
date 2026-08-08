@@ -46,7 +46,7 @@ export async function GET(req: NextRequest) {
     const sucursal = `"${e.cliente.sucursal ?? ""}"`;
     const pagado = e.pagado ? "Sí" : "No";
     for (const d of e.detalles) {
-      const neto = d.cantidad * d.producto.precioBase;
+      const neto = d.cantidad * (d.precioUnitario ?? d.producto.precioBase);
       const iva = neto * (d.producto.tasaIva ?? 0.19);
       const total = neto + iva;
       rows.push([

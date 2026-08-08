@@ -22,7 +22,7 @@ interface EnvioConDetalles {
   id: string;
   fecha: Date;
   cliente: { razonSocial: string; rut: string; giro: string; direccion: string; email: string };
-  detalles: { cantidad: number; producto: { sku: string; nombre: string; precioBase: number } }[];
+  detalles: { cantidad: number; precioUnitario: number | null; producto: { sku: string; nombre: string; precioBase: number } }[];
 }
 
 export interface EmailResult {
@@ -88,7 +88,7 @@ export async function generarYEnviarGuias(envioIds: string[]): Promise<EmailResu
           codigo: d.producto.sku,
           descripcion: d.producto.nombre,
           cantidad: d.cantidad,
-          precioUnitario: d.producto.precioBase, // precio neto (sin IVA)
+          precioUnitario: d.precioUnitario ?? d.producto.precioBase, // precio neto congelado; fallback a precio actual
           tasaIva: d.producto.tasaIva ?? 0.19,
         })),
       });

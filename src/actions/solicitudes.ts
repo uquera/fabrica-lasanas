@@ -60,7 +60,7 @@ export async function confirmarSolicitud(id: string) {
         clienteId: solicitud.clienteId,
         fecha: new Date(solicitud.fechaEntrega.toISOString().split("T")[0] + "T12:00:00"),
         detalles: {
-          create: [{ productoId: producto.id, cantidad: solicitud.cantidad }],
+          create: [{ productoId: producto.id, cantidad: solicitud.cantidad, precioUnitario: producto.precioBase }],
         },
       },
     });

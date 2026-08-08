@@ -76,6 +76,7 @@ function BarChart({ envios }: { envios: { fecha: string; detalles: { cantidad: n
 
 type Detalle = {
   cantidad: number;
+  precioUnitario: number | null;
   producto: { nombre: string; precioBase: number; tasaIva: number };
 };
 
@@ -140,14 +141,14 @@ export default function PortalView({ envios, razonSocial }: { envios: Envio[]; r
   const totales = useMemo(() => {
     let unidades = 0, neto = 0;
     for (const e of enviosPeriodo)
-      for (const d of e.detalles) { unidades += d.cantidad; neto += d.cantidad * d.producto.precioBase; }
+      for (const d of e.detalles) { unidades += d.cantidad; neto += d.cantidad * (d.precioUnitario ?? d.producto.precioBase); }
     return { unidades, neto, iva: neto * 0.19, total: neto * 1.19 };
   }, [enviosPeriodo]);
 
   const totalesFiltrados = useMemo(() => {
     let unidades = 0, neto = 0;
     for (const e of enviosFiltrados)
-      for (const d of e.detalles) { unidades += d.cantidad; neto += d.cantidad * d.producto.precioBase; }
+      for (const d of e.detalles) { unidades += d.cantidad; neto += d.cantidad * (d.precioUnitario ?? d.producto.precioBase); }
     return { unidades, neto, total: neto * 1.19 };
   }, [enviosFiltrados]);
 
@@ -163,7 +164,7 @@ export default function PortalView({ envios, razonSocial }: { envios: Envio[]; r
     let ultimaFecha: string | null = null;
 
     for (const e of envios) {
-      const neto = e.detalles.reduce((s, d) => s + d.cantidad * d.producto.precioBase, 0);
+      const neto = e.detalles.reduce((s, d) => s + d.cantidad * (d.precioUnitario ?? d.producto.precioBase), 0);
       const total = neto * (1 + (e.detalles[0]?.producto.tasaIva ?? 0.19));
       totalHistorico += total;
       const pagado = e.pagado || !!pagosLocales[e.id];
@@ -466,7 +467,7 @@ export default function PortalView({ envios, razonSocial }: { envios: Envio[]; r
                 </thead>
                 <tbody>
                   {enviosFiltrados.map((envio) => {
-                    const neto = envio.detalles.reduce((s, d) => s + d.cantidad * d.producto.precioBase, 0);
+                    const neto = envio.detalles.reduce((s, d) => s + d.cantidad * (d.precioUnitario ?? d.producto.precioBase), 0);
                     const total = neto * 1.19;
                     const unidades = envio.detalles.reduce((s, d) => s + d.cantidad, 0);
                     const producto = envio.detalles[0]?.producto.nombre ?? "—";

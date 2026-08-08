@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
 
   let totalDespachado = 0;
   let totalMerma = 0;
-  for (const e of envios) for (const d of e.detalles) totalDespachado += d.cantidad * d.producto.precioBase;
+  for (const e of envios) for (const d of e.detalles) totalDespachado += d.cantidad * (d.precioUnitario ?? d.producto.precioBase);
   for (const m of mermas) totalMerma += m.cantidad * m.producto.precioBase;
   const netoFacturable = Math.max(0, totalDespachado - totalMerma);
 

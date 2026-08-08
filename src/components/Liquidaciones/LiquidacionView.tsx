@@ -48,7 +48,7 @@ function PanelLiquidacion({
   const { envios, mermas, cliente } = data;
   let totalDespachado = 0;
   let totalMerma = 0;
-  for (const e of envios) for (const d of e.detalles) totalDespachado += d.cantidad * d.producto.precioBase;
+  for (const e of envios) for (const d of e.detalles) totalDespachado += d.cantidad * (d.precioUnitario ?? d.producto.precioBase);
   for (const m of mermas) totalMerma += m.cantidad * m.producto.precioBase;
   const netoFacturable = Math.max(0, totalDespachado - totalMerma);
   const iva = Math.round(netoFacturable * 0.19);
@@ -114,7 +114,7 @@ function PanelLiquidacion({
                   </thead>
                   <tbody>
                     {envios.map((e) => {
-                      const neto = e.detalles.reduce((s, d) => s + d.cantidad * d.producto.precioBase, 0);
+                      const neto = e.detalles.reduce((s, d) => s + d.cantidad * (d.precioUnitario ?? d.producto.precioBase), 0);
                       const unid = e.detalles.reduce((s, d) => s + d.cantidad, 0);
                       return (
                         <tr key={e.id} className="border-b border-zinc-800/60 hover:bg-zinc-800/30">

@@ -16,6 +16,13 @@ export async function createEnvio(
   }
 
   try {
+    // Congelar el precio actual de cada producto en el detalle (precio histórico)
+    const productos = await prisma.producto.findMany({
+      where: { id: { in: items.map((i) => i.productoId) } },
+      select: { id: true, precioBase: true },
+    });
+    const precioPorId = new Map(productos.map((p) => [p.id, p.precioBase]));
+
     const envio = await prisma.envio.create({
       data: {
         clienteId,
@@ -24,6 +31,7 @@ export async function createEnvio(
           create: items.map((item) => ({
             productoId: item.productoId,
             cantidad: item.cantidad,
+            precioUnitario: precioPorId.get(item.productoId) ?? null,
           })),
         },
       },
@@ -44,13 +52,21 @@ export async function createEnviosBulk(
 ) {
   const results: { clienteId: string; envioId: string | null; error: string | null }[] = [];
 
+  // Congelar el precio actual de cada producto en el detalle (precio histórico)
+  const productoIds = [...new Set(envios.flatMap((e) => e.items.map((i) => i.productoId)))];
+  const productos = await prisma.producto.findMany({
+    where: { id: { in: productoIds } },
+    select: { id: true, precioBase: true },
+  });
+  const precioPorId = new Map(productos.map((p) => [p.id, p.precioBase]));
+
   for (const e of envios) {
     try {
       const envio = await prisma.envio.create({
         data: {
           clienteId: e.clienteId,
           fecha: new Date(fecha + "T12:00:00"),
-          detalles: { create: e.items.map((i) => ({ productoId: i.productoId, cantidad: i.cantidad })) },
+          detalles: { create: e.items.map((i) => ({ productoId: i.productoId, cantidad: i.cantidad, precioUnitario: precioPorId.get(i.productoId) ?? null })) },
         },
       });
       results.push({ clienteId: e.clienteId, envioId: envio.id, error: null });

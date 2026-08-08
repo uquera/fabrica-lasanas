@@ -16,7 +16,7 @@ export type EnvioPendiente = {
   folio: number | null;
   fecha: string;
   cliente: { id: string; razonSocial: string; rut: string; sucursal: string | null; giro: string; direccion: string; email: string };
-  detalles: { cantidad: number; producto: { nombre: string; precioBase: number; sku: string } }[];
+  detalles: { cantidad: number; precioUnitario: number | null; producto: { nombre: string; precioBase: number; sku: string } }[];
 };
 
 export type MermaItem = {
@@ -74,7 +74,7 @@ export async function getLiquidacionesPendientes(): Promise<ClientePendiente[]> 
     const g = map.get(rut)!;
     g.totalGuias += 1;
     for (const d of envio.detalles) {
-      g.totalDespachado += d.cantidad * d.producto.precioBase;
+      g.totalDespachado += d.cantidad * (d.precioUnitario ?? d.producto.precioBase);
     }
   }
 
@@ -147,7 +147,7 @@ export async function confirmarLiquidacion(rut: string, facturaId: string, envia
 
       let totalDespachado = 0;
       let totalMerma = 0;
-      for (const e of envios) for (const d of e.detalles) totalDespachado += d.cantidad * d.producto.precioBase;
+      for (const e of envios) for (const d of e.detalles) totalDespachado += d.cantidad * (d.precioUnitario ?? d.producto.precioBase);
       for (const m of mermas) totalMerma += m.cantidad * m.producto.precioBase;
       const netoFacturable = Math.max(0, totalDespachado - totalMerma);
 

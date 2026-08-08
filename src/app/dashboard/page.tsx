@@ -46,7 +46,7 @@ async function getTMData() {
       .filter((e: any) => !e.pagado)
       .reduce((s: number, e: any) =>
         s + e.detalles.reduce((ss: number, d: any) =>
-          ss + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0), 0);
+          ss + d.cantidad * (d.precioUnitario ?? d.producto.precioBase) * (1 + (d.producto.tasaIva ?? 0.19)), 0), 0);
     return { tienda, unidades, pendiente, mermas: mermaMap[clienteId] ?? 0, despachos: storeEnvios.length };
   });
 }
@@ -91,7 +91,7 @@ async function getSparklineData() {
     const dayMermas = sparkMermas.filter((m: any) => new Date(m.fecha).toISOString().split("T")[0] === ds);
     const revenue = dayEnvios.reduce((s: number, e: any) =>
       s + e.detalles.reduce((ss: number, d: any) =>
-        ss + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0), 0);
+        ss + d.cantidad * (d.precioUnitario ?? d.producto.precioBase) * (1 + (d.producto.tasaIva ?? 0.19)), 0), 0);
     return {
       revenue,
       dispatches: dayEnvios.length,
@@ -200,7 +200,7 @@ async function getDashboardData(range: string = "month", fromParam?: string, toP
     const calcRevenue = (envios: any[]) =>
       envios.reduce((total: number, envio: any) =>
         total + envio.detalles.reduce((s: number, d: any) =>
-          s + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0), 0);
+          s + d.cantidad * (d.precioUnitario ?? d.producto.precioBase) * (1 + (d.producto.tasaIva ?? 0.19)), 0), 0);
 
     const revenueActual = calcRevenue(enviosActual);
     const revenueAnterior = calcRevenue(enviosAnterior);
@@ -217,7 +217,7 @@ async function getDashboardData(range: string = "month", fromParam?: string, toP
       if (!dayMap[day]) dayMap[day] = { count: 0, revenue: 0 };
       dayMap[day].count++;
       dayMap[day].revenue += envio.detalles.reduce((s: number, d: any) =>
-        s + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0);
+        s + d.cantidad * (d.precioUnitario ?? d.producto.precioBase) * (1 + (d.producto.tasaIva ?? 0.19)), 0);
     }
     const chartData = Object.entries(dayMap)
       .sort(([a], [b]) => a.localeCompare(b))
@@ -233,7 +233,7 @@ async function getDashboardData(range: string = "month", fromParam?: string, toP
       if (!clientMap[id]) clientMap[id] = { id, razonSocial: envio.cliente.razonSocial, revenue: 0, despachos: 0, mermas: mermaMap[id] ?? 0 };
       clientMap[id].despachos++;
       clientMap[id].revenue += envio.detalles.reduce((s: number, d: any) =>
-        s + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0);
+        s + d.cantidad * (d.precioUnitario ?? d.producto.precioBase) * (1 + (d.producto.tasaIva ?? 0.19)), 0);
     }
     const rankingData = Object.values(clientMap);
 
@@ -466,7 +466,7 @@ export default async function DashboardPage(props: { searchParams: Promise<{ ran
               )}
               {data?.recentEnvios.map((envio: any) => {
                 const revenue = envio.detalles.reduce((s: number, d: any) =>
-                  s + d.cantidad * d.producto.precioBase * (1 + (d.producto.tasaIva ?? 0.19)), 0);
+                  s + d.cantidad * (d.precioUnitario ?? d.producto.precioBase) * (1 + (d.producto.tasaIva ?? 0.19)), 0);
                 const items = envio.detalles.map((d: any) => `${d.cantidad}× ${d.producto.nombre}`).join(", ");
                 return (
                   <div key={envio.id} className="flex items-center gap-4 px-6 py-3.5 hover:bg-zinc-800/20 transition-colors">

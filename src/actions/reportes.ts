@@ -50,7 +50,7 @@ export async function getReporteByRange(inicioISO: string, finISO: string, label
       const entry = clienteMap.get(c.id)!;
       for (const det of envio.detalles) {
         entry.unidadesEnviadas += det.cantidad;
-        entry.ventaBruta += det.cantidad * det.producto.precioBase;
+        entry.ventaBruta += det.cantidad * (det.precioUnitario ?? det.producto.precioBase);
       }
     }
 

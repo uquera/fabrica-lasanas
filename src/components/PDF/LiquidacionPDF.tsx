@@ -123,7 +123,7 @@ export const LiquidacionPDF = ({
           <Text style={[s.colNeto, s.headerText]}>Neto</Text>
         </View>
         {envios.map((envio, i) => {
-          const netoEnvio = envio.detalles.reduce((s, d) => s + d.cantidad * d.producto.precioBase, 0);
+          const netoEnvio = envio.detalles.reduce((s, d) => s + d.cantidad * (d.precioUnitario ?? d.producto.precioBase), 0);
           const unidades = envio.detalles.reduce((s, d) => s + d.cantidad, 0);
           const prod = envio.detalles[0]?.producto.nombre ?? "—";
           return (

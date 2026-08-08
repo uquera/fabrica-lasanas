@@ -12,7 +12,7 @@ import { marcarPagado } from "@/actions/portal";
 import { createMerma } from "@/actions/mermas";
 import { createSolicitudPedido } from "@/actions/solicitudes";
 
-type Detalle = { cantidad: number; producto: { nombre: string; precioBase: number; tasaIva: number } };
+type Detalle = { cantidad: number; precioUnitario: number | null; producto: { nombre: string; precioBase: number; tasaIva: number } };
 type Envio = {
   id: string; folio: number | null; fecha: string; pagado: boolean;
   fechaPago: string | null; comprobantePago: string | null; detalles: Detalle[];
@@ -207,7 +207,7 @@ export default function SubUserView({
   const kpis = useMemo(() => {
     let pagado = 0, pendiente = 0, unidades = 0;
     for (const e of envios) {
-      const neto = e.detalles.reduce((s, d) => s + d.cantidad * d.producto.precioBase, 0);
+      const neto = e.detalles.reduce((s, d) => s + d.cantidad * (d.precioUnitario ?? d.producto.precioBase), 0);
       const total = neto * (1 + (e.detalles[0]?.producto.tasaIva ?? 0.19));
       if (e.pagado || pagosLocales[e.id]) pagado += total; else pendiente += total;
     }
@@ -422,7 +422,7 @@ export default function SubUserView({
                     </thead>
                     <tbody>
                       {enviosPeriodo.map((envio) => {
-                        const neto = envio.detalles.reduce((s, d) => s + d.cantidad * d.producto.precioBase, 0);
+                        const neto = envio.detalles.reduce((s, d) => s + d.cantidad * (d.precioUnitario ?? d.producto.precioBase), 0);
                         const total = neto * 1.19;
                         const unidades = envio.detalles.reduce((s, d) => s + d.cantidad, 0);
                         const pagado = isPagado(envio);
@@ -477,7 +477,7 @@ export default function SubUserView({
                                         <Package className="w-3 h-3 text-orange-400" />
                                         <span className="font-bold text-white">{d.cantidad}×</span>
                                         <span className="text-zinc-400">{d.producto.nombre}</span>
-                                        <span className="text-zinc-600 ml-1">{fmt(d.cantidad * d.producto.precioBase * 1.19)}</span>
+                                        <span className="text-zinc-600 ml-1">{fmt(d.cantidad * (d.precioUnitario ?? d.producto.precioBase) * 1.19)}</span>
                                       </span>
                                     ))}
                                   </div>

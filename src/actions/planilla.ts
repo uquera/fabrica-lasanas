@@ -80,7 +80,7 @@ export async function procesarPlanilla(rows: PlanillaRowInput[], fechaISO: strin
             clienteId,
             fecha,
             detalles: {
-              create: { productoId: productoIndividual.id, cantidad: totalEntrega },
+              create: { productoId: productoIndividual.id, cantidad: totalEntrega, precioUnitario: productoIndividual.precioBase },
             },
           },
         });

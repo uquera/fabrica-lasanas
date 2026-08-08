@@ -40,7 +40,7 @@ export async function GET(req: NextRequest) {
       codigo: d.producto.sku,
       descripcion: d.producto.nombre,
       cantidad: d.cantidad,
-      precioUnitario: d.producto.precioBase,
+      precioUnitario: d.precioUnitario ?? d.producto.precioBase,
       tasaIva: d.producto.tasaIva ?? 0.19,
     })),
   });
