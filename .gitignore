@@ -54,3 +54,4 @@ env_out.txt
 *_out.txt
 deploy_out.txt
 pm2_logs.txt
+.qa-reports/
