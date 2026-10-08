@@ -23,12 +23,14 @@ import {
   ExternalLink,
   UtensilsCrossed,
   Sandwich,
+  Store,
 } from "lucide-react";
 
 const navItems = [
   { label: "Dashboard",      href: "/dashboard",     icon: LayoutDashboard },
   { label: "Clientes",       href: "/clientes",      icon: Users },
   { label: "Nuevo Despacho", href: "/envios/nuevo",  icon: Truck },
+  { label: "Time Market",    href: "/timemarket",    icon: Store },
   { label: "Mermas",         href: "/mermas",        icon: AlertTriangle },
   { label: "Liquidaciones",  href: "/liquidaciones", icon: DollarSign },
   { label: "Guías",          href: "/guias",         icon: FileText },
