@@ -124,3 +124,50 @@ model SanwichLead {
 
   @@index([createdAt])
 }
+
+// ─── TIME MARKET: guías de despacho/retiro por tienda ────────────────────────
+// Misma lógica que la planilla "Guia Tiendas TM":
+//   venta efectiva de una guía = entrega de esa guía − devolución registrada en la guía siguiente
+
+model TmConfig {
+  id               Int      @id @default(1)
+  precioIndividual Float    @default(5300)   // neto
+  tasaIva          Float    @default(0.19)
+  updatedAt        DateTime @updatedAt
+}
+
+model TmTienda {
+  id        String    @id @default(cuid())
+  nombre    String    @unique
+  direccion String    @default("")
+  orden     Int       @default(0)
+  activa    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  lineas    TmLinea[]
+}
+
+model TmGuia {
+  id               String    @id @default(cuid())
+  fecha            DateTime  @unique          // fecha de la visita del camión (despacho)
+  precioIndividual Float                      // neto, congelado al crear la guía
+  tasaIva          Float     @default(0.19)
+  nota             String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+  lineas           TmLinea[]
+
+  @@index([fecha])
+}
+
+model TmLinea {
+  id                   String   @id @default(cuid())
+  guiaId               String
+  tiendaId             String
+  entregaIndividual    Int      @default(0)
+  devolucionIndividual Int      @default(0)   // retirado en esta visita (corresponde a la guía anterior)
+  guia                 TmGuia   @relation(fields: [guiaId], references: [id], onDelete: Cascade)
+  tienda               TmTienda @relation(fields: [tiendaId], references: [id])
+
+  @@unique([guiaId, tiendaId])
+}
