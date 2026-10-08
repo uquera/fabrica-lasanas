@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Plus, Settings, BarChart2, Store, Upload } from "lucide-react";
 import { getTmGuiasCalculadas, getTmTiendas } from "@/actions/timemarket";
-import { fmtCLP, formatoFecha } from "@/lib/timemarket";
+import { fmtCLP, formatoFecha, hoyChile } from "@/lib/timemarket";
 import GuiasLista from "./GuiasLista";
 
 export const dynamic = "force-dynamic";
@@ -10,7 +10,7 @@ export default async function TimeMarketPage() {
   const [calculadas, tiendas] = await Promise.all([getTmGuiasCalculadas(), getTmTiendas()]);
   const ultima = calculadas[calculadas.length - 1] ?? null;
   const cerradas = calculadas.filter((g) => g.cerrada);
-  const mes = new Date().toISOString().slice(0, 7);
+  const mes = hoyChile().slice(0, 7);
   const delMes = cerradas.filter((g) => g.guia.fecha.startsWith(mes));
   const netoMes = delMes.reduce((s, g) => s + g.totales.neto, 0);
   const ventaMes = delMes.reduce((s, g) => s + g.totales.ventaIndividual, 0);

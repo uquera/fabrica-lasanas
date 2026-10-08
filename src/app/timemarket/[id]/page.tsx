@@ -13,9 +13,9 @@ export default async function EditarGuiaPage({ params }: { params: Promise<{ id:
   const ant = calculadas[i - 1]?.guia ?? null;
   const sig = calculadas[i + 1]?.guia ?? null;
 
-  // Incluir tiendas activas que no tengan línea aún (p. ej. tienda nueva)
+  // Tiendas activas, las que ya tienen línea, y las inactivas con entrega pendiente de retiro en la guía anterior
   const lineas = tiendas
-    .filter((t) => t.activa || g.lineas.some((l) => l.tiendaId === t.id))
+    .filter((t) => t.activa || g.lineas.some((l) => l.tiendaId === t.id) || ant?.lineas.some((l) => l.tiendaId === t.id && l.entregaIndividual > 0))
     .map((t) => g.lineas.find((l) => l.tiendaId === t.id) ?? { tiendaId: t.id, entregaIndividual: 0, devolucionIndividual: 0 });
 
   return (

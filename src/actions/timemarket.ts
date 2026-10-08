@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import {
   calcularGuias,
   fechaAIso,
+  hoyChile,
   isoAFecha,
   resumenPorRango,
   siguienteFechaVisita,
@@ -67,6 +68,10 @@ export async function getTmTiendas(soloActivas = false): Promise<TmTienda[]> {
 export async function upsertTmTienda(data: { id?: string; nombre: string; direccion: string; activa: boolean }) {
   const nombre = data.nombre.trim();
   if (!nombre) return { success: false, error: "El nombre es obligatorio." };
+  const repetida = await db.tmTienda.findFirst({
+    where: { nombre: { equals: nombre, mode: "insensitive" }, ...(data.id ? { NOT: { id: data.id } } : {}) },
+  });
+  if (repetida) return { success: false, error: "Ya existe una tienda con ese nombre." };
   try {
     if (data.id) {
       await db.tmTienda.update({ where: { id: data.id }, data: { nombre, direccion: data.direccion.trim(), activa: data.activa } });
@@ -111,14 +116,16 @@ export async function getTmResumen(desde: string, hasta: string) {
 
 /** Propuesta para la siguiente guía: fecha (mar/vie) y entregas iguales a la última. */
 export async function getTmPropuestaSiguiente() {
-  const [config, tiendas, guias] = await Promise.all([getTmConfig(), getTmTiendas(true), cargarGuias()]);
+  const [config, tiendas, guias] = await Promise.all([getTmConfig(), getTmTiendas(), cargarGuias()]);
   const ultima = guias[guias.length - 1] ?? null;
-  const fecha = ultima ? siguienteFechaVisita(ultima.fecha) : siguienteFechaVisita(new Date().toISOString().slice(0, 10));
-  const lineas = tiendas.map((t) => {
+  // Tiendas activas + las inactivas a las que se les entregó en la última guía (falta anotar su retiro)
+  const pendientes = new Set(ultima?.lineas.filter((l) => l.entregaIndividual > 0).map((l) => l.tiendaId));
+  const fecha = ultima ? siguienteFechaVisita(ultima.fecha) : siguienteFechaVisita(hoyChile());
+  const lineas = tiendas.filter((t) => t.activa || pendientes.has(t.id)).map((t) => {
     const prev = ultima?.lineas.find((l) => l.tiendaId === t.id);
     return {
       tiendaId: t.id,
-      entregaIndividual: prev?.entregaIndividual ?? 0,
+      entregaIndividual: t.activa ? prev?.entregaIndividual ?? 0 : 0,
       devolucionIndividual: 0,
     };
   });

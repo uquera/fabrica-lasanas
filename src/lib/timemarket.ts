@@ -128,6 +128,11 @@ export function isoAFecha(iso: string): Date {
   return new Date(`${iso}T12:00:00.000Z`);
 }
 
+/** Fecha de hoy (YYYY-MM-DD) en hora de Chile, no UTC. */
+export function hoyChile(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "America/Santiago" }).format(new Date());
+}
+
 export function fechaAIso(d: Date): string {
   return d.toISOString().slice(0, 10);
 }

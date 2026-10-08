@@ -1,19 +1,19 @@
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { getTmGuiasCalculadas, getTmTiendas } from "@/actions/timemarket";
-import { fmtCLP, formatoFecha, resumenPorRango } from "@/lib/timemarket";
+import { fmtCLP, formatoFecha, hoyChile, resumenPorRango } from "@/lib/timemarket";
 import RangoFiltro from "./RangoFiltro";
 
 export const dynamic = "force-dynamic";
 
 function primerDiaMes() {
-  return new Date().toISOString().slice(0, 7) + "-01";
+  return hoyChile().slice(0, 7) + "-01";
 }
 
 export default async function ResumenPage({ searchParams }: { searchParams: Promise<{ desde?: string; hasta?: string }> }) {
   const sp = await searchParams;
   const desde = sp.desde && /^\d{4}-\d{2}-\d{2}$/.test(sp.desde) ? sp.desde : primerDiaMes();
-  const hasta = sp.hasta && /^\d{4}-\d{2}-\d{2}$/.test(sp.hasta) ? sp.hasta : new Date().toISOString().slice(0, 10);
+  const hasta = sp.hasta && /^\d{4}-\d{2}-\d{2}$/.test(sp.hasta) ? sp.hasta : hoyChile();
 
   const [calculadas, tiendas] = await Promise.all([getTmGuiasCalculadas(), getTmTiendas()]);
   const r = resumenPorRango(calculadas, desde, hasta);
@@ -30,7 +30,7 @@ export default async function ResumenPage({ searchParams }: { searchParams: Prom
             <h1 className="text-3xl font-bold tracking-tight">Resumen por <span className="text-orange-500">rango de fechas</span></h1>
             <p className="text-zinc-500 text-sm mt-1">Suma la venta efectiva de las guías cerradas entre {formatoFecha(desde)} y {formatoFecha(hasta)}.</p>
           </div>
-          <RangoFiltro desde={desde} hasta={hasta} />
+          <RangoFiltro key={`${desde}_${hasta}`} desde={desde} hasta={hasta} />
         </div>
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
