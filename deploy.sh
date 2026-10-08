@@ -53,15 +53,19 @@ mkdir -p "$DATA_DIR"
 ok "Directorio de datos: $DATA_DIR"
 
 # ── 6. Variables de entorno ───────────────────────────────────
-info "Creando archivo .env..."
-cat > "$APP_DIR/.env" <<'ENVEOF'
-DATABASE_URL="file:/root/fabrica-lasanas/data/prod.db"
-GMAIL_USER=donna.any.cl@gmail.com
-GMAIL_APP_PASSWORD=dqdiihnypxuopnsn
-GEMINI_API_KEY=AIzaSyB7xzizu16xCbmMRiYREvo0fQlBJukzJmw
-NODE_ENV=production
-ENVEOF
-ok ".env creado"
+# El .env NO se genera desde este script: contiene claves y vive solo en el servidor.
+# Si no existe, se crea desde la plantilla y se detiene para que lo completes.
+if [ ! -f "$APP_DIR/.env" ]; then
+  cp "$APP_DIR/.env.example" "$APP_DIR/.env"
+  echo -e "${RED}✖ Falta $APP_DIR/.env — se creó desde .env.example. Completa las claves y vuelve a ejecutar.${NC}"
+  exit 1
+fi
+for v in DATABASE_URL AUTH_SECRET GMAIL_USER GMAIL_APP_PASSWORD; do
+  if ! grep -qE "^${v}=.+" "$APP_DIR/.env"; then
+    echo -e "${RED}✖ Falta ${v} en .env${NC}"; exit 1
+  fi
+done
+ok ".env presente"
 
 # ── 7. Dependencias ───────────────────────────────────────────
 info "Instalando dependencias npm..."
