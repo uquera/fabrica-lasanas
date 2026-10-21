@@ -60,7 +60,7 @@ if [ ! -f "$APP_DIR/.env" ]; then
   echo -e "${RED}✖ Falta $APP_DIR/.env — se creó desde .env.example. Completa las claves y vuelve a ejecutar.${NC}"
   exit 1
 fi
-for v in DATABASE_URL AUTH_SECRET GMAIL_USER GMAIL_APP_PASSWORD; do
+for v in DATABASE_URL AUTH_SECRET EMAIL_USER EMAIL_PASS EMAIL_FROM; do
   if ! grep -qE "^${v}=.+" "$APP_DIR/.env"; then
     echo -e "${RED}✖ Falta ${v} en .env${NC}"; exit 1
   fi

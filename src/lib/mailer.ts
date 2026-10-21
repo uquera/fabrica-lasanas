@@ -1,12 +1,4 @@
-import nodemailer from "nodemailer";
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
-  },
-});
+import { createTransporter, fromConNombre } from "./mail";
 
 export async function sendSolicitudEmail(data: {
   tienda: string;
@@ -52,9 +44,9 @@ export async function sendSolicitudEmail(data: {
     </div>
   `;
 
-  await transporter.sendMail({
-    from: `"Doña Any Sistema" <${process.env.GMAIL_USER}>`,
-    to: process.env.GMAIL_USER,
+  await createTransporter().sendMail({
+    from: fromConNombre("Doña Any Sistema"),
+    to: process.env.ADMIN_EMAIL,
     subject: `📦 Pedido ${data.tienda} — ${data.cantidad} unid. para ${fecha}`,
     html,
   });

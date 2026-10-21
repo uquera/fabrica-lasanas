@@ -1,7 +1,35 @@
 import nodemailer from "nodemailer";
 
 /**
- * Sends an email via Gmail SMTP.
+ * Estándar Hypnos: autentica con contacto@hypnosapps.com y envía como
+ * no-reply@hypnosapps.com (SPF+DKIM+DMARC); las respuestas van a EMAIL_REPLY_TO.
+ */
+export function mailConfigurado(): boolean {
+  return !!(process.env.EMAIL_USER && process.env.EMAIL_PASS && process.env.EMAIL_FROM);
+}
+
+export function createTransporter(opts: { connectionTimeout?: number; socketTimeout?: number } = {}) {
+  return nodemailer.createTransport(
+    {
+      host: process.env.EMAIL_HOST || "smtp.gmail.com",
+      port: Number(process.env.EMAIL_PORT || 587),
+      secure: Number(process.env.EMAIL_PORT || 587) === 465,
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS },
+      ...opts,
+    },
+    { from: process.env.EMAIL_FROM, replyTo: process.env.EMAIL_REPLY_TO || undefined },
+  );
+}
+
+/** `"Doña Any - Guías" <no-reply@...>`: cambia el nombre visible y conserva la dirección de EMAIL_FROM. */
+export function fromConNombre(nombre: string): string | undefined {
+  const from = process.env.EMAIL_FROM;
+  const direccion = from?.match(/<([^>]+)>/)?.[1] ?? from;
+  return direccion ? `"${nombre}" <${direccion}>` : undefined;
+}
+
+/**
+ * Sends an email via SMTP (estándar no-reply de Hypnos).
  * Uses callback-style nodemailer to guarantee the returned Promise
  * always RESOLVES (never rejects), preventing unhandled rejections from
  * crashing the Node.js process.
@@ -12,21 +40,13 @@ export function sendMail({ to, subject, text, attachments }: {
   text: string;
   attachments?: any[];
 }): Promise<{ success: boolean; error?: string }> {
-  const GMAIL_USER = process.env.GMAIL_USER;
-  const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
-
-  if (!GMAIL_USER || !GMAIL_APP_PASSWORD) {
-    console.warn("[mail] Gmail credentials not configured.");
-    return Promise.resolve({ success: false, error: "Credenciales de Gmail no configuradas." });
+  if (!mailConfigurado()) {
+    console.warn("[mail] EMAIL_USER / EMAIL_PASS / EMAIL_FROM no configurados.");
+    return Promise.resolve({ success: false, error: "Correo no configurado (EMAIL_USER / EMAIL_PASS / EMAIL_FROM)." });
   }
 
   return new Promise((resolve) => {
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
-      connectionTimeout: 10000,
-      socketTimeout: 15000,
-    });
+    const transporter = createTransporter({ connectionTimeout: 10000, socketTimeout: 15000 });
 
     let settled = false;
     const settle = (result: { success: boolean; error?: string }) => {
@@ -52,7 +72,7 @@ export function sendMail({ to, subject, text, attachments }: {
     // Use callback API — nodemailer handles all internal SMTP events before calling back
     transporter.sendMail(
       {
-        from: `"Doña Any - Guías de Despacho" <${GMAIL_USER}>`,
+        from: fromConNombre("Doña Any - Guías de Despacho"),
         to,
         subject,
         text,

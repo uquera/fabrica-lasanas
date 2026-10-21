@@ -2,7 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import nodemailer from "nodemailer";
+import { createTransporter, fromConNombre } from "@/lib/mail";
 import { renderToBuffer } from "@react-pdf/renderer";
 import { createElement } from "react";
 import { LiquidacionPDF } from "@/components/PDF/LiquidacionPDF";
@@ -165,13 +165,10 @@ export async function confirmarLiquidacion(rut: string, facturaId: string, envia
         }) as any
       );
 
-      const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: { user: process.env.GMAIL_USER, pass: process.env.GMAIL_APP_PASSWORD },
-      });
+      const transporter = createTransporter();
 
       await transporter.sendMail({
-        from: `"Doña Any" <${process.env.GMAIL_USER}>`,
+        from: fromConNombre("Doña Any"),
         to: cliente.email,
         subject: `Liquidación de ventas — Factura N° ${facturaId}`,
         html: `<p>Estimados,</p><p>Adjuntamos la liquidación de despachos correspondiente.</p><p><b>Factura N° ${facturaId}</b></p><p>Monto neto: $${netoFacturable.toLocaleString("es-CL")}<br>Total c/IVA: $${Math.round(netoFacturable * 1.19).toLocaleString("es-CL")}</p><p>Saludos,<br>Doña Any</p>`,
