@@ -21,7 +21,7 @@ function getLogoBase64(): string | undefined {
 interface EnvioConDetalles {
   id: string;
   fecha: Date;
-  cliente: { razonSocial: string; rut: string; giro: string; direccion: string; email: string };
+  cliente: { razonSocial: string; rut: string; giro: string; direccion: string; email: string; emailCopia: string | null };
   detalles: { cantidad: number; precioUnitario: number | null; producto: { sku: string; nombre: string; precioBase: number } }[];
 }
 
@@ -61,8 +61,12 @@ export async function generarYEnviarGuias(envioIds: string[]): Promise<EmailResu
 
     if (!envio) continue;
 
-    const clienteEmail = envio.cliente.email?.trim();
-    const tieneEmail = !!clienteEmail && clienteEmail.length > 0 && !clienteEmail.startsWith("AUTO-");
+    // Principal + 2º email opcional; los "AUTO-" son placeholders sin correo real
+    const clienteEmail = [envio.cliente.email, envio.cliente.emailCopia]
+      .map((e) => e?.trim())
+      .filter((e): e is string => !!e && !e.startsWith("AUTO-"))
+      .join(", ");
+    const tieneEmail = clienteEmail.length > 0;
 
     try {
       // 1. Asignar folio siempre (independiente del email)

@@ -13,11 +13,12 @@ interface Cliente {
   giro: string;
   direccion: string;
   email: string;
+  emailCopia?: string | null;
 }
 
 export default function ClienteCard({ cliente }: { cliente: Cliente }) {
   const [editing, setEditing] = useState(false);
-  const [form, setForm] = useState({ ...cliente, sucursal: cliente.sucursal ?? "" as string });
+  const [form, setForm] = useState({ ...cliente, sucursal: cliente.sucursal ?? "" as string, emailCopia: cliente.emailCopia ?? "" as string });
   const [saving, setSaving] = useState(false);
   const router = useRouter();
 
@@ -32,6 +33,7 @@ export default function ClienteCard({ cliente }: { cliente: Cliente }) {
       giro: form.giro,
       direccion: form.direccion,
       email: form.email,
+      emailCopia: form.emailCopia.trim() || null,
     });
     if (res.success) {
       setEditing(false);
@@ -53,7 +55,7 @@ export default function ClienteCard({ cliente }: { cliente: Cliente }) {
       <div className="bg-zinc-900/50 border border-orange-500/30 rounded-2xl p-6 space-y-3">
         <div className="flex items-center justify-between mb-2">
           <p className="text-xs font-bold uppercase tracking-widest text-orange-500">Editando Cliente</p>
-          <button onClick={() => { setEditing(false); setForm({ ...cliente, sucursal: cliente.sucursal ?? "" }); }} className="p-1 text-zinc-500 hover:text-white"><X className="w-4 h-4" /></button>
+          <button onClick={() => { setEditing(false); setForm({ ...cliente, sucursal: cliente.sucursal ?? "", emailCopia: cliente.emailCopia ?? "" }); }} className="p-1 text-zinc-500 hover:text-white"><X className="w-4 h-4" /></button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {[
@@ -83,6 +85,18 @@ export default function ClienteCard({ cliente }: { cliente: Cliente }) {
             type="email"
             placeholder="tienda@ejemplo.cl"
             className="w-full bg-black border border-orange-500/30 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-orange-500 transition-colors"
+          />
+        </div>
+        <div className="space-y-1">
+          <label className="text-[10px] font-bold uppercase tracking-widest text-zinc-600 flex items-center gap-1">
+            <Mail className="w-3 h-3" /> 2º email para guías (opcional)
+          </label>
+          <input
+            value={form.emailCopia}
+            onChange={(e) => setForm({ ...form, emailCopia: e.target.value })}
+            type="email"
+            placeholder="encargado@ejemplo.cl"
+            className="w-full bg-black border border-zinc-800 rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-orange-500/50 transition-colors"
           />
         </div>
         <button
@@ -115,7 +129,7 @@ export default function ClienteCard({ cliente }: { cliente: Cliente }) {
             <span className="bg-zinc-800 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider text-zinc-400">{cliente.rut}</span>
             <span className="flex items-center gap-1"><MapPin className="w-3 h-3" /> {cliente.direccion}</span>
             {hasEmail ? (
-              <span className="flex items-center gap-1 text-emerald-500"><Mail className="w-3 h-3" /> {cliente.email}</span>
+              <span className="flex items-center gap-1 text-emerald-500"><Mail className="w-3 h-3" /> {cliente.email}{cliente.emailCopia ? `, ${cliente.emailCopia}` : ""}</span>
             ) : (
               <span className="flex items-center gap-1 text-amber-500"><AlertCircle className="w-3 h-3" /> Sin email configurado</span>
             )}

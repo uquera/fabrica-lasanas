@@ -34,7 +34,7 @@ export async function createCliente(formData: FormData) {
   }
 }
 
-export async function updateCliente(id: string, data: { rut?: string; razonSocial?: string; sucursal?: string | null; giro?: string; direccion?: string; email?: string }) {
+export async function updateCliente(id: string, data: { rut?: string; razonSocial?: string; sucursal?: string | null; giro?: string; direccion?: string; email?: string; emailCopia?: string | null }) {
   try {
     await prisma.cliente.update({
       where: { id },
