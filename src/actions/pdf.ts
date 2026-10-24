@@ -104,12 +104,12 @@ export async function generarYEnviarGuias(envioIds: string[]): Promise<EmailResu
         where: { id: envio.id },
         data: { guiaDespacho: `GDE-${folio}` },
       });
-      revalidatePath("/guias");
-      revalidatePath("/");
+      revalidar();
 
       // 4. Enviar email solo si hay dirección válida
       if (!tieneEmail) {
         console.log(`[PDF] Sin email válido: ${envio.cliente.razonSocial} — guía guardada sin envío`);
+        await guardarEstado(envio.id, "no_email", null);
         results.push({ tienda: envio.cliente.razonSocial, email: "", status: "no_email" });
         continue;
       }
@@ -128,16 +128,35 @@ export async function generarYEnviarGuias(envioIds: string[]): Promise<EmailResu
 
       if (emailResult.success) {
         console.log(`[PDF] ✓ Email enviado a ${clienteEmail}`);
+        await guardarEstado(envio.id, "sent", null);
         results.push({ tienda: envio.cliente.razonSocial, email: clienteEmail!, status: "sent" });
       } else {
         console.error(`[PDF] ✗ Error enviando email: ${emailResult.error}`);
+        await guardarEstado(envio.id, "error", emailResult.error ?? null);
         results.push({ tienda: envio.cliente.razonSocial, email: clienteEmail!, status: "error", error: emailResult.error });
       }
     } catch (err: any) {
       console.error(`[PDF] ✗ Error para ${envio.cliente.razonSocial}:`, err.message);
+      await guardarEstado(envio.id, "error", err.message).catch(() => {});
       results.push({ tienda: envio.cliente.razonSocial, email: clienteEmail ?? "", status: "error", error: err.message });
     }
   }
 
   return results;
+}
+
+async function guardarEstado(envioId: string, emailEstado: string, emailError: string | null) {
+  await (prisma.envio as any).update({
+    where: { id: envioId },
+    data: { emailEstado, emailError, emailEnviadoAt: emailEstado === "sent" ? new Date() : undefined },
+  });
+}
+
+// La cola de guías corre fuera de una petición (src/lib/colaGuias.ts), donde
+// revalidatePath lanza error; /guias es force-dynamic y no depende de esto.
+function revalidar() {
+  try {
+    revalidatePath("/guias");
+    revalidatePath("/");
+  } catch {}
 }

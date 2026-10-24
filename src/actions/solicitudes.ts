@@ -3,7 +3,7 @@
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { sendSolicitudEmail } from "@/lib/mailer";
-import { generarYEnviarGuias } from "@/actions/pdf";
+import { encolarGuias } from "@/lib/colaGuias";
 
 export async function createSolicitudPedido(data: {
   clienteId: string;
@@ -65,8 +65,8 @@ export async function confirmarSolicitud(id: string) {
       },
     });
 
-    // Ejecutar protocolo de guía de despacho (folio + PDF + email)
-    await generarYEnviarGuias([envio.id]);
+    // Protocolo de guía de despacho (folio + PDF + email) en la cola del servidor
+    await encolarGuias([envio.id]);
   }
 
   await prisma.solicitudPedido.update({

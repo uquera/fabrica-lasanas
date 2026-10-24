@@ -54,6 +54,11 @@ model Envio {
   fecha            DateTime       @default(now())
   clienteId        String
   guiaDespacho     String?
+  // Envío de la guía por email, procesado en el servidor (src/lib/colaGuias.ts):
+  // "pendiente" | "enviando" | "sent" | "no_email" | "error"
+  emailEstado      String?
+  emailError       String?
+  emailEnviadoAt   DateTime?
   facturado        Boolean        @default(false)
   facturaId        String?
   pagado           Boolean        @default(false)

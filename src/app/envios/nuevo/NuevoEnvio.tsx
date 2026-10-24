@@ -1,8 +1,9 @@
 "use client";
 
 import { useState, useMemo } from "react";
-import { createEnvio, createEnviosBulk, enviarGuia, getUltimoReparto } from "@/actions/envios";
-import { generarYEnviarGuias } from "@/actions/pdf";
+import {
+  createEnvio, createEnviosBulk, enviarGuia, getUltimoReparto, enviarGuiasEnSegundoPlano, estadoGuias,
+} from "@/actions/envios";
 import {
   Package, User, Plus, Trash2, ArrowLeft, FileText, Loader2, Eye,
   CheckCircle, Mail, LayoutDashboard, Minus, Layers, RotateCcw,
@@ -165,36 +166,39 @@ export default function NuevoEnvio({ clientes, productos }: { clientes: any[]; p
     const pendientes = bulkResults.filter((r) => r.envioId && r.emailStatus === "idle");
     if (!pendientes.length) return;
     setSendingAll(true);
+    const ids = pendientes.map((p) => p.envioId!);
+    setBulkResults((prev) => prev.map((r) => ids.includes(r.envioId!) ? { ...r, emailStatus: "sending" } : r));
 
-    for (const pendiente of pendientes) {
-      // Marcar como enviando
-      setBulkResults((prev) =>
-        prev.map((r) => r.clienteId === pendiente.clienteId ? { ...r, emailStatus: "sending" } : r),
-      );
-
-      try {
-        const results = await generarYEnviarGuias([pendiente.envioId!]);
-        const match = results[0];
+    // El servidor genera y envía las guías por su cuenta (aunque se bloquee el
+    // celular); acá solo se consulta el avance cada 3 segundos.
+    try {
+      await enviarGuiasEnSegundoPlano(ids);
+      for (;;) {
+        const estados = await estadoGuias(ids);
+        const porId = new Map(estados.map((e) => [e.id, e]));
         setBulkResults((prev) =>
-          prev.map((r) =>
-            r.clienteId === pendiente.clienteId
-              ? {
-                  ...r,
-                  emailStatus: match?.status === "sent" ? "sent" : match?.status === "no_email" ? "no_email" : "error",
-                  emailError: match?.error ?? null,
-                }
-              : r,
-          ),
+          prev.map((r) => {
+            const e = r.envioId ? porId.get(r.envioId) : undefined;
+            if (!e) return r;
+            const emailStatus: BulkResult["emailStatus"] =
+              e.emailEstado === "sent" ? "sent"
+              : e.emailEstado === "no_email" ? "no_email"
+              : e.emailEstado === "error" ? "error"
+              : "sending";
+            return { ...r, emailStatus, emailError: e.emailError };
+          }),
         );
-      } catch (err: any) {
-        setBulkResults((prev) =>
-          prev.map((r) =>
-            r.clienteId === pendiente.clienteId
-              ? { ...r, emailStatus: "error", emailError: err.message ?? "Error inesperado" }
-              : r,
-          ),
-        );
+        if (estados.every((e) => !["pendiente", "enviando"].includes(e.emailEstado ?? ""))) break;
+        await new Promise((res) => setTimeout(res, 3000));
       }
+    } catch (err: any) {
+      // Si falla la consulta (sin señal, app en segundo plano) el servidor sigue
+      // enviando; el resultado queda en el historial de guías.
+      setBulkResults((prev) =>
+        prev.map((r) => r.emailStatus === "sending"
+          ? { ...r, emailError: "Sin conexión: el envío sigue en el servidor. Revisa el historial de guías." }
+          : r),
+      );
     }
 
     setSendingAll(false);
@@ -332,6 +336,11 @@ export default function NuevoEnvio({ clientes, productos }: { clientes: any[]; p
                 ? <><Loader2 className="w-4 h-4 animate-spin" /> Enviando emails...</>
                 : <><Send className="w-4 h-4" /> Enviar todas por email</>}
             </button>
+          )}
+          {sendingAll && (
+            <p className="text-xs text-zinc-500 text-center -mt-2 mb-4">
+              Las guías se envían desde el servidor: puedes bloquear el celular o cerrar esta pantalla.
+            </p>
           )}
 
           {/* Results table */}

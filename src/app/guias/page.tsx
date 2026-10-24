@@ -4,6 +4,10 @@ import { ArrowLeft, FileText, CheckCircle2, Clock, Mail, Download } from "lucide
 import GenerarGuiaButton from "@/components/GenerarGuiaButton";
 import EliminarEnvioButton from "@/components/EliminarEnvioButton";
 
+// Las guías se envían en segundo plano (src/lib/colaGuias.ts), fuera de una
+// petición donde revalidatePath no funciona: el historial se lee siempre de la base.
+export const dynamic = "force-dynamic";
+
 export default async function GuiasPage() {
   const envios = await (prisma.envio as any).findMany({
     orderBy: { createdAt: "desc" },

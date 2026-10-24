@@ -2,7 +2,7 @@
 
 import prisma from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
-import { generarYEnviarGuias } from "@/actions/pdf";
+import { encolarGuias, procesarEnCola } from "@/lib/colaGuias";
 
 export async function createEnvio(
   formData: FormData,
@@ -103,9 +103,34 @@ export async function getUltimoReparto() {
   }));
 }
 
+/**
+ * Encola las guías del reparto masivo y responde al instante: el servidor las
+ * genera y envía aunque el celular bloquee la pantalla. La pantalla consulta
+ * el avance con estadoGuias().
+ */
+export async function enviarGuiasEnSegundoPlano(envioIds: string[]) {
+  await encolarGuias(envioIds);
+  return { success: true };
+}
+
+export async function estadoGuias(envioIds: string[]) {
+  const envios = await (prisma.envio as any).findMany({
+    where: { id: { in: envioIds } },
+    select: { id: true, folio: true, emailEstado: true, emailError: true },
+  });
+  if (envios.every((e: any) => !["pendiente", "enviando"].includes(e.emailEstado))) {
+    revalidatePath("/guias");
+    revalidatePath("/");
+  }
+  return envios as { id: string; folio: number | null; emailEstado: string | null; emailError: string | null }[];
+}
+
+// Envío o reenvío manual de una guía (modo individual y botón del historial).
+// Pasa por la misma cola para no repetir folios; si el celular corta la
+// conexión, la guía queda "enviando" y la retoma retomarPendientes().
 export async function enviarGuia(envioId: string) {
   try {
-    const results = await generarYEnviarGuias([envioId]);
+    const results = await procesarEnCola([envioId], { forzar: true });
     const result = results[0];
     revalidatePath("/guias");
     revalidatePath("/");
